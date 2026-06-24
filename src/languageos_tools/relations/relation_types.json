@@ -1,0 +1,175 @@
+{
+  "schema_version": "1.0",
+  "relation_types": [
+    {
+      "id": "contains_vocabulary",
+      "label": "Contains vocabulary",
+      "category": "structure",
+      "description": "A sentence or transcript contains a vocabulary item.",
+      "source_types": ["sentence", "transcript", "listening_transcript"],
+      "target_types": ["vocabulary"],
+      "symmetric": false,
+      "enabled": true
+    },
+    {
+      "id": "uses_grammar",
+      "label": "Uses grammar",
+      "category": "structure",
+      "description": "A sentence or vocabulary item uses or demonstrates a grammar pattern.",
+      "source_types": ["sentence", "vocabulary"],
+      "target_types": ["grammar"],
+      "symmetric": false,
+      "enabled": true
+    },
+    {
+      "id": "example_of",
+      "label": "Example of",
+      "category": "structure",
+      "description": "An item is an example of another language item or grammar concept.",
+      "source_types": ["sentence", "vocabulary"],
+      "target_types": ["grammar", "vocabulary"],
+      "symmetric": false,
+      "enabled": true
+    },
+    {
+      "id": "source_of",
+      "label": "Source of",
+      "category": "source",
+      "description": "A transcript, resource, or source item produced another item.",
+      "source_types": ["transcript", "listening_transcript", "resource"],
+      "target_types": ["sentence", "vocabulary", "grammar"],
+      "symmetric": false,
+      "enabled": true
+    },
+    {
+      "id": "derived_from",
+      "label": "Derived from",
+      "category": "source",
+      "description": "An item was derived from another item.",
+      "source_types": ["sentence", "vocabulary", "grammar"],
+      "target_types": ["transcript", "listening_transcript", "resource", "sentence"],
+      "symmetric": false,
+      "enabled": true
+    },
+    {
+      "id": "similar_to",
+      "label": "Similar to",
+      "category": "semantic",
+      "description": "Two items are semantically similar.",
+      "source_types": ["vocabulary", "sentence", "grammar"],
+      "target_types": ["vocabulary", "sentence", "grammar"],
+      "symmetric": true,
+      "enabled": true
+    },
+    {
+      "id": "opposite_of",
+      "label": "Opposite of",
+      "category": "semantic",
+      "description": "Two items are direct opposites or antonyms.",
+      "source_types": ["vocabulary", "sentence"],
+      "target_types": ["vocabulary", "sentence"],
+      "symmetric": true,
+      "enabled": true
+    },
+    {
+      "id": "contrast_with",
+      "label": "Contrast with",
+      "category": "semantic",
+      "description": "Two items should be compared because they express contrasting meaning, usage, or logic.",
+      "source_types": ["vocabulary", "sentence", "grammar"],
+      "target_types": ["vocabulary", "sentence", "grammar"],
+      "symmetric": true,
+      "enabled": true
+    },
+    {
+      "id": "confusable_with",
+      "label": "Confusable with",
+      "category": "learning",
+      "description": "Two items are easy to confuse and should be studied together.",
+      "source_types": ["vocabulary", "sentence", "grammar"],
+      "target_types": ["vocabulary", "sentence", "grammar"],
+      "symmetric": true,
+      "enabled": true
+    },
+    {
+      "id": "negative_counterpart",
+      "label": "Negative counterpart",
+      "category": "semantic",
+      "description": "A sentence or expression has a positive/negative counterpart.",
+      "source_types": ["sentence", "vocabulary"],
+      "target_types": ["sentence", "vocabulary"],
+      "symmetric": true,
+      "enabled": true
+    },
+    {
+      "id": "translation_of",
+      "label": "Translation of",
+      "category": "translation",
+      "description": "An item is a translation of another item.",
+      "source_types": ["vocabulary", "sentence"],
+      "target_types": ["vocabulary", "sentence"],
+      "symmetric": true,
+      "enabled": true
+    },
+    {
+      "id": "translation_variant_of",
+      "label": "Translation variant of",
+      "category": "translation",
+      "description": "An item is an alternative translation or meaning variant.",
+      "source_types": ["vocabulary", "sentence"],
+      "target_types": ["vocabulary", "sentence"],
+      "symmetric": true,
+      "enabled": true
+    },
+    {
+      "id": "formal_variant_of",
+      "label": "Formal variant of",
+      "category": "register",
+      "description": "An item is a more formal variant of another item.",
+      "source_types": ["vocabulary", "sentence"],
+      "target_types": ["vocabulary", "sentence"],
+      "symmetric": false,
+      "enabled": true
+    },
+    {
+      "id": "informal_variant_of",
+      "label": "Informal variant of",
+      "category": "register",
+      "description": "An item is a more informal variant of another item.",
+      "source_types": ["vocabulary", "sentence"],
+      "target_types": ["vocabulary", "sentence"],
+      "symmetric": false,
+      "enabled": true
+    },
+    {
+      "id": "slang_variant_of",
+      "label": "Slang variant of",
+      "category": "register",
+      "description": "An item is a slang variant of another item.",
+      "source_types": ["vocabulary", "sentence"],
+      "target_types": ["vocabulary", "sentence"],
+      "symmetric": false,
+      "enabled": true
+    },
+    {
+      "id": "register_variant_of",
+      "label": "Register variant of",
+      "category": "register",
+      "description": "An item differs by register, tone, formality, or context.",
+      "source_types": ["vocabulary", "sentence"],
+      "target_types": ["vocabulary", "sentence"],
+      "symmetric": false,
+      "enabled": true
+    },
+    {
+      "id": "grammar_contrast_with",
+      "label": "Grammar contrast with",
+      "category": "grammar",
+      "description": "Two grammar concepts should be compared because learners may confuse them.",
+      "source_types": ["grammar"],
+      "target_types": ["grammar"],
+      "symmetric": true,
+      "enabled": true
+    }
+  ]
+}
