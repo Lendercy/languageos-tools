@@ -10,7 +10,7 @@ from languageos_tools.migrations.migration_runner import MigrationContext
 from languageos_tools.obsidian.note import VaultNote
 
 
-RELATIONS_TEMPLATE_VERSION = "1.0"
+RELATIONS_TEMPLATE_VERSION = "1.1"
 
 
 ITEM_RELATION_SECTIONS: dict[str, tuple[str, ...]] = {
@@ -49,6 +49,27 @@ ITEM_RELATION_SECTIONS: dict[str, tuple[str, ...]] = {
 }
 
 
+RELATION_LABELS: dict[str, str] = {
+    "contains_vocabulary": "Contains Vocabulary",
+    "uses_grammar": "Uses Grammar",
+    "example_of": "Example Of",
+    "source_of": "Source Of",
+    "derived_from": "Derived From",
+    "similar_to": "Similar To",
+    "opposite_of": "Opposite Of",
+    "contrast_with": "Contrast With",
+    "confusable_with": "Confusable With",
+    "negative_counterpart": "Negative Counterpart",
+    "translation_of": "Translation Of",
+    "translation_variant_of": "Translation Variant Of",
+    "formal_variant_of": "Formal Variant Of",
+    "informal_variant_of": "Informal Variant Of",
+    "slang_variant_of": "Slang Variant Of",
+    "register_variant_of": "Register Variant Of",
+    "grammar_contrast_with": "Grammar Contrast With",
+}
+
+
 SENSE_SUPPORTED_TYPES = {
     "vocabulary",
     "sentence",
@@ -58,15 +79,15 @@ SENSE_SUPPORTED_TYPES = {
 @dataclass(frozen=True)
 class RelationsTemplateMigration:
     """
-    Adds future-proof relation/sense scaffold sections to atomic LanguageOS notes.
+    Adds or upgrades future-proof relation/sense scaffold sections.
 
     Design rules:
-    - Non-destructive: never removes or rewrites existing user content.
-    - Conservative: only processes vocabulary/sentence/grammar notes.
-    - Idempotent: running it multiple times should not keep changing notes.
-    - Template-versioned: uses `relations_template_version` to track applied state.
-    - Existing `## Meaning` sections are preserved.
-    - `## Meanings / Senses` is only created when no meaning section exists yet.
+    - Non-destructive.
+    - Only processes vocabulary/sentence/grammar notes.
+    - Idempotent.
+    - Uses relations_template_version.
+    - Preserves existing `## Meaning`.
+    - Converts empty v1.0 raw relation scaffold into v1.1 human-readable scaffold.
     """
 
     template_version: str = RELATIONS_TEMPLATE_VERSION
@@ -84,10 +105,7 @@ class RelationsTemplateMigration:
 
         item_type = document.get_str("type").strip().lower()
 
-        if item_type not in ITEM_RELATION_SECTIONS:
-            return False
-
-        return True
+        return item_type in ITEM_RELATION_SECTIONS
 
     def migrate_note(self, note: VaultNote, context: MigrationContext) -> VaultNote | None:
         parser = FrontmatterParser()
@@ -102,7 +120,11 @@ class RelationsTemplateMigration:
         new_metadata = dict(document.metadata)
         new_body = document.body.rstrip()
 
-        if new_metadata.get("relations_template_version") != self.template_version:
+        current_template_version = str(
+            new_metadata.get("relations_template_version") or ""
+        ).strip()
+
+        if current_template_version != self.template_version:
             new_metadata["relations_template_version"] = self.template_version
             changed = True
 
@@ -113,15 +135,31 @@ class RelationsTemplateMigration:
             )
             changed = True
 
+        desired_relations_section = self._build_relations_section(
+            relation_types=ITEM_RELATION_SECTIONS[item_type],
+        )
+
         if not self._has_heading(new_body, "Relations", level=2):
             new_body = self._append_section(
                 body=new_body,
-                section=self._build_relations_section(
-                    item_type=item_type,
-                    relation_types=ITEM_RELATION_SECTIONS[item_type],
-                ),
+                section=desired_relations_section,
             )
             changed = True
+        else:
+            existing_relations_section = self._extract_section(
+                body=new_body,
+                heading="Relations",
+                level=2,
+            )
+
+            if self._is_auto_generated_empty_relations_section(existing_relations_section):
+                new_body = self._replace_section(
+                    body=new_body,
+                    heading="Relations",
+                    level=2,
+                    replacement=desired_relations_section,
+                )
+                changed = True
 
         if not changed:
             return None
@@ -138,16 +176,27 @@ class RelationsTemplateMigration:
         if item_type not in SENSE_SUPPORTED_TYPES:
             return False
 
-        if self._has_heading(body, "Meanings / Senses", level=2):
-            return False
+        if item_type == "vocabulary":
+            if self._has_heading(body, "Meanings / Senses", level=2):
+                return False
 
-        # Preserve existing meaning sections for now.
-        # A later dedicated migration can convert `## Meaning`
-        # into `## Meanings / Senses` after preview/review.
-        if self._has_heading(body, "Meaning", level=2):
-            return False
+            # Do not auto-convert existing Meaning yet.
+            if self._has_heading(body, "Meaning", level=2):
+                return False
 
-        return True
+            return True
+
+        if item_type == "sentence":
+            if self._has_heading(body, "Meaning Variants", level=2):
+                return False
+
+            # Do not auto-convert existing Meaning yet.
+            if self._has_heading(body, "Meaning", level=2):
+                return False
+
+            return True
+
+        return False
 
     def _build_senses_section(self, item_type: str) -> str:
         if item_type == "vocabulary":
@@ -188,25 +237,22 @@ class RelationsTemplateMigration:
 
         return ""
 
-    def _build_relations_section(
-        self,
-        item_type: str,
-        relation_types: Iterable[str],
-    ) -> str:
+    def _build_relations_section(self, relation_types: Iterable[str]) -> str:
         lines: list[str] = [
             "## Relations",
             "",
-            "<!--",
-            "Controlled relation section.",
             "Add Obsidian links under the relevant relation type.",
-            "Example:",
-            "- [[Vocabulary/German/trotzdem|trotzdem]]",
-            "-->",
+            "Use the `relation_type` line as the machine-readable id.",
             "",
         ]
 
         for relation_type in relation_types:
-            lines.append(f"### {relation_type}")
+            label = RELATION_LABELS.get(relation_type, self._humanize_relation_id(relation_type))
+            lines.append(f"### {label}")
+            lines.append("")
+            lines.append(f"relation_type: `{relation_type}`")
+            lines.append("")
+            lines.append("- TODO")
             lines.append("")
 
         return "\n".join(lines).rstrip()
@@ -227,3 +273,68 @@ class RelationsTemplateMigration:
         hashes = "#" * level
         pattern = rf"(?im)^{re.escape(hashes)}\s+{re.escape(heading)}\s*$"
         return re.search(pattern, body) is not None
+
+    def _extract_section(self, body: str, heading: str, level: int) -> str:
+        hashes = "#" * level
+        pattern = (
+            rf"(?ims)^"
+            rf"{re.escape(hashes)}\s+{re.escape(heading)}\s*$"
+            rf"\n(.*?)(?=^##\s+|\Z)"
+        )
+
+        match = re.search(pattern, body)
+
+        if not match:
+            return ""
+
+        return match.group(1).strip()
+
+    def _replace_section(
+        self,
+        body: str,
+        heading: str,
+        level: int,
+        replacement: str,
+    ) -> str:
+        hashes = "#" * level
+        pattern = (
+            rf"(?ims)^"
+            rf"{re.escape(hashes)}\s+{re.escape(heading)}\s*$"
+            rf"\n.*?(?=^##\s+|\Z)"
+        )
+
+        return re.sub(pattern, replacement.strip(), body).rstrip()
+
+    def _is_auto_generated_empty_relations_section(self, section: str) -> bool:
+        if not section.strip():
+            return True
+
+        # Preserve if user already added real Obsidian links.
+        if "[[" in section and "]]" in section:
+            return False
+
+        # Preserve if user wrote real notes under relations.
+        non_empty_lines = [
+            line.strip()
+            for line in section.splitlines()
+            if line.strip()
+        ]
+
+        content_lines = [
+            line
+            for line in non_empty_lines
+            if not line.startswith("<!--")
+            and not line.startswith("-->")
+            and not line.startswith("Controlled relation section")
+            and not line.startswith("Add Obsidian links")
+            and not line.startswith("Example:")
+            and not line.startswith("- [[Vocabulary/German/trotzdem|trotzdem]]")
+            and not re.match(r"^###\s+[A-Za-z0-9_ ]+$", line)
+            and not line.startswith("relation_type:")
+            and line != "- TODO"
+        ]
+
+        return len(content_lines) == 0
+
+    def _humanize_relation_id(self, relation_id: str) -> str:
+        return relation_id.replace("_", " ").title()
