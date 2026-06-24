@@ -86,8 +86,8 @@ class RelationsTemplateMigration:
     - Only processes vocabulary/sentence/grammar notes.
     - Idempotent.
     - Uses relations_template_version.
-    - Preserves existing `## Meaning`.
-    - Converts empty v1.0 raw relation scaffold into v1.1 human-readable scaffold.
+    - Preserves existing user-written relation links.
+    - Replaces old auto-generated v1.0 relation scaffold.
     """
 
     template_version: str = RELATIONS_TEMPLATE_VERSION
@@ -180,7 +180,6 @@ class RelationsTemplateMigration:
             if self._has_heading(body, "Meanings / Senses", level=2):
                 return False
 
-            # Do not auto-convert existing Meaning yet.
             if self._has_heading(body, "Meaning", level=2):
                 return False
 
@@ -190,7 +189,6 @@ class RelationsTemplateMigration:
             if self._has_heading(body, "Meaning Variants", level=2):
                 return False
 
-            # Do not auto-convert existing Meaning yet.
             if self._has_heading(body, "Meaning", level=2):
                 return False
 
@@ -247,7 +245,10 @@ class RelationsTemplateMigration:
         ]
 
         for relation_type in relation_types:
-            label = RELATION_LABELS.get(relation_type, self._humanize_relation_id(relation_type))
+            label = RELATION_LABELS.get(
+                relation_type,
+                self._humanize_relation_id(relation_type),
+            )
             lines.append(f"### {label}")
             lines.append("")
             lines.append(f"relation_type: `{relation_type}`")
@@ -306,35 +307,60 @@ class RelationsTemplateMigration:
         return re.sub(pattern, replacement.strip(), body).rstrip()
 
     def _is_auto_generated_empty_relations_section(self, section: str) -> bool:
-        if not section.strip():
+        cleaned = self._remove_html_comments(section).strip()
+
+        if not cleaned:
             return True
 
-        # Preserve if user already added real Obsidian links.
-        if "[[" in section and "]]" in section:
-            return False
-
-        # Preserve if user wrote real notes under relations.
-        non_empty_lines = [
+        lines = [
             line.strip()
-            for line in section.splitlines()
+            for line in cleaned.splitlines()
             if line.strip()
         ]
 
-        content_lines = [
-            line
-            for line in non_empty_lines
-            if not line.startswith("<!--")
-            and not line.startswith("-->")
-            and not line.startswith("Controlled relation section")
-            and not line.startswith("Add Obsidian links")
-            and not line.startswith("Example:")
-            and not line.startswith("- [[Vocabulary/German/trotzdem|trotzdem]]")
-            and not re.match(r"^###\s+[A-Za-z0-9_ ]+$", line)
-            and not line.startswith("relation_type:")
-            and line != "- TODO"
-        ]
+        real_content_lines: list[str] = []
 
-        return len(content_lines) == 0
+        for line in lines:
+            if line.startswith("Add Obsidian links"):
+                continue
+
+            if line.startswith("Use the `relation_type`"):
+                continue
+
+            if re.match(r"^###\s+[A-Za-z0-9_ ]+$", line):
+                continue
+
+            if line.startswith("relation_type:"):
+                continue
+
+            if line == "- TODO":
+                continue
+
+            if line in {"<!--", "-->"}:
+                continue
+
+            # Old v1.0 example line. It is not user data.
+            if line == "- [[Vocabulary/German/trotzdem|trotzdem]]":
+                continue
+
+            if line == "Controlled relation section.":
+                continue
+
+            if line == "Example:":
+                continue
+
+            real_content_lines.append(line)
+
+        # If user added actual relation links outside the old example,
+        # preserve the section.
+        for line in real_content_lines:
+            if "[[" in line and "]]" in line:
+                return False
+
+        return len(real_content_lines) == 0
+
+    def _remove_html_comments(self, text: str) -> str:
+        return re.sub(r"(?is)<!--.*?-->", "", text)
 
     def _humanize_relation_id(self, relation_id: str) -> str:
         return relation_id.replace("_", " ").title()
