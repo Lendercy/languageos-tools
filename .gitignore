@@ -1,0 +1,58 @@
+# Python virtual environment
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Build / package artifacts
+build/
+dist/
+*.egg-info/
+
+# Test / coverage cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Logs / temporary files
+logs/
+tmp/
+temp/
+*.log
+
+# Local databases / indexes
+*.db
+*.sqlite
+*.sqlite3
+
+# Backup files
+*.bak
+*.backup
+*.tmp
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Large generated media
+*.mp3
+*.wav
+*.m4a
+*.flac
+
+# Zip snapshots
+*.zip
+*.7z
+*.rar

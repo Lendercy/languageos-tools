@@ -1,0 +1,59 @@
+{
+  "languageos_root": "D:/LanguageOS",
+  "obsidian_vault": "D:/LanguageOS/Obsidian/LanguageOS_vault",
+
+  "required_paths": {
+    "aios_me": "D:/LanguageOS/AIOS/me.md",
+    "aios_map": "D:/LanguageOS/AIOS/languageos_map.md",
+
+    "engineering_principles": "D:/LanguageOS/AIOS/manuals/engineering_principles.md",
+    "writing_workflow": "D:/LanguageOS/AIOS/manuals/writing_workflow.md",
+    "vocabulary_workflow": "D:/LanguageOS/AIOS/manuals/vocabulary_workflow.md",
+    "topic_taxonomy": "D:/LanguageOS/AIOS/manuals/topic_taxonomy.md",
+    "metadata_schema": "D:/LanguageOS/AIOS/manuals/metadata_schema.md",
+
+    "vocabulary_inbox": "D:/LanguageOS/Obsidian/LanguageOS_vault/Vocabulary/Vocabulary Inbox.md",
+    "sentence_bank": "D:/LanguageOS/Obsidian/LanguageOS_vault/Sentences/Sentence Bank.md",
+    "writing_practice": "D:/LanguageOS/Obsidian/LanguageOS_vault/Writing/Writing Practice.md",
+    "writing_error_log": "D:/LanguageOS/Obsidian/LanguageOS_vault/Writing/Writing Error Log.md",
+    "anki_card_rules": "D:/LanguageOS/Obsidian/LanguageOS_vault/Anki/Anki Card Rules.md"
+  },
+
+  "external_tools": {
+    "anki_connect_url": "http://127.0.0.1:8765"
+  },
+
+  "outputs": {
+    "candidates_dir": "D:/LanguageOS/Inbox/Candidates",
+    "anki_card_candidates": "D:/LanguageOS/Inbox/Candidates/anki_card_candidates.json",
+    "vocabulary_candidates": "D:/LanguageOS/Inbox/Candidates/vocabulary_candidates.json",
+    "writing_error_candidates": "D:/LanguageOS/Inbox/Candidates/writing_error_candidates.json",
+
+    "indexes_dir": "D:/LanguageOS/Inbox/Indexes",
+    "language_items_index": "D:/LanguageOS/Inbox/Indexes/language_items_index.json",
+    "languageos_db": "D:/LanguageOS/Inbox/Indexes/languageos.db"
+  },
+
+  "anki": {
+    "model_name": "Basic",
+    "decks": {
+      "english": "LanguageOS::English",
+      "german": "LanguageOS::German"
+    }
+  },
+
+  "stt": {
+    "default_model": "small",
+    "quality_model": "medium",
+    "device": "cuda",
+    "compute_type": "int8_float16",
+    "fallback_device": "cpu",
+    "fallback_compute_type": "int8"
+  },
+
+  "tts": {
+    "default_german_voice": "de-DE-ConradNeural",
+    "default_german_female_voice": "de-DE-KatjaNeural",
+    "default_english_voice": "en-US-JennyNeural"
+  }
+}
