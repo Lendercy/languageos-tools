@@ -20,6 +20,11 @@ class RelationRepository:
 
     This repository is intentionally separate from the text FTS index.
     The relation index can be rebuilt from Obsidian notes.
+
+    Responsibilities:
+    - Initialize relation table.
+    - Rebuild relation table from parsed Obsidian relations.
+    - Query outgoing/incoming relations for debugging and future UI.
     """
 
     def __init__(self, config: RelationRepositoryConfig) -> None:
@@ -77,6 +82,20 @@ class RelationRepository:
                 """
             )
 
+            conn.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_item_relations_source_normalized
+                ON item_relations(source_normalized)
+                """
+            )
+
+            conn.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_item_relations_target_normalized
+                ON item_relations(target_normalized)
+                """
+            )
+
             conn.commit()
 
     def rebuild(self, relations: Iterable[ParsedRelation]) -> int:
@@ -118,13 +137,11 @@ class RelationRepository:
                         relation.source_key.language,
                         relation.source_key.normalized,
                         relation.source_path,
-
                         relation.target_key.as_string(),
                         relation.target_key.item_type,
                         relation.target_key.language,
                         relation.target_key.normalized,
                         relation.target_path,
-
                         relation.relation_type.value,
                         relation.confidence,
                         relation.evidence,
@@ -168,6 +185,113 @@ class RelationRepository:
             ).fetchall()
 
         return [dict(row) for row in rows]
+
+    def search_item_keys(self, query: str, limit: int = 20) -> list[dict]:
+        """
+        Find item keys that appear in relation rows.
+
+        This is intentionally relation-table based, not FTS based.
+        It supports quick debugging for relation graph state.
+        """
+
+        self.initialize()
+        query_like = f"%{query.strip().lower()}%"
+
+        with self._connect() as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                """
+                WITH relation_items AS (
+                    SELECT
+                        source_key AS item_key,
+                        source_type AS item_type,
+                        source_language AS language,
+                        source_normalized AS normalized,
+                        source_path AS obsidian_path
+                    FROM item_relations
+
+                    UNION
+
+                    SELECT
+                        target_key AS item_key,
+                        target_type AS item_type,
+                        target_language AS language,
+                        target_normalized AS normalized,
+                        target_path AS obsidian_path
+                    FROM item_relations
+                )
+                SELECT DISTINCT
+                    item_key,
+                    item_type,
+                    language,
+                    normalized,
+                    obsidian_path
+                FROM relation_items
+                WHERE
+                    LOWER(item_key) LIKE ?
+                    OR LOWER(normalized) LIKE ?
+                    OR LOWER(obsidian_path) LIKE ?
+                ORDER BY item_type, language, normalized
+                LIMIT ?
+                """,
+                (query_like, query_like, query_like, limit),
+            ).fetchall()
+
+        return [dict(row) for row in rows]
+
+    def get_outgoing_relations(self, item_key: str) -> list[dict]:
+        self.initialize()
+
+        with self._connect() as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                """
+                SELECT
+                    source_key,
+                    relation_type,
+                    target_key,
+                    confidence,
+                    evidence,
+                    source_path,
+                    target_path
+                FROM item_relations
+                WHERE source_key = ?
+                ORDER BY relation_type, target_key
+                """,
+                (item_key,),
+            ).fetchall()
+
+        return [dict(row) for row in rows]
+
+    def get_incoming_relations(self, item_key: str) -> list[dict]:
+        self.initialize()
+
+        with self._connect() as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                """
+                SELECT
+                    source_key,
+                    relation_type,
+                    target_key,
+                    confidence,
+                    evidence,
+                    source_path,
+                    target_path
+                FROM item_relations
+                WHERE target_key = ?
+                ORDER BY relation_type, source_key
+                """,
+                (item_key,),
+            ).fetchall()
+
+        return [dict(row) for row in rows]
+
+    def get_neighbors(self, item_key: str) -> dict[str, list[dict]]:
+        return {
+            "outgoing": self.get_outgoing_relations(item_key),
+            "incoming": self.get_incoming_relations(item_key),
+        }
 
     def _connect(self) -> sqlite3.Connection:
         return sqlite3.connect(self._db_path)
