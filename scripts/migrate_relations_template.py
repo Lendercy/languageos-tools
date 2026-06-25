@@ -43,7 +43,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--template-version",
-        default="1.0",
+        default="1.1",
         help="Relations template version to apply.",
     )
     parser.add_argument(
