@@ -1,0 +1,179 @@
+{
+  "schema_version": "note_type_registry_v1",
+  "default_language_policy": {
+    "supported_languages": ["english", "german"],
+    "meaning_language": "english",
+    "explanation_language": "english"
+  },
+  "note_types": {
+    "vocabulary": {
+      "description": "A vocabulary item for a target language.",
+      "category": "language_item",
+      "key_policy_item_type": "vocabulary",
+      "default_folder_by_language": {
+        "english": "Vocabulary/English",
+        "german": "Vocabulary/German"
+      },
+      "required_frontmatter": [
+        "schema_version",
+        "type",
+        "language",
+        "normalized",
+        "meaning"
+      ],
+      "optional_frontmatter": [
+        "aliases",
+        "tags",
+        "anki_status",
+        "source",
+        "created_at",
+        "updated_at"
+      ],
+      "body_sections": [
+        "Meaning",
+        "Examples",
+        "Relations"
+      ],
+      "language_policy": {
+        "meaning_language": "english"
+      },
+      "relation_sections_allowed": true,
+      "indexable": true,
+      "fts_enabled": true
+    },
+    "sentence": {
+      "description": "A sentence example in a target language.",
+      "category": "language_item",
+      "key_policy_item_type": "sentence",
+      "default_folder_by_language": {
+        "english": "Sentences/English",
+        "german": "Sentences/German"
+      },
+      "required_frontmatter": [
+        "schema_version",
+        "type",
+        "language",
+        "normalized",
+        "meaning"
+      ],
+      "optional_frontmatter": [
+        "aliases",
+        "tags",
+        "anki_status",
+        "source",
+        "created_at",
+        "updated_at"
+      ],
+      "body_sections": [
+        "Meaning",
+        "Notes",
+        "Relations"
+      ],
+      "language_policy": {
+        "meaning_language": "english"
+      },
+      "relation_sections_allowed": true,
+      "indexable": true,
+      "fts_enabled": true
+    },
+    "grammar": {
+      "description": "A grammar concept or rule.",
+      "category": "knowledge_item",
+      "key_policy_item_type": "grammar",
+      "default_folder_by_language": {
+        "english": "Grammar/English",
+        "german": "Grammar/German"
+      },
+      "required_frontmatter": [
+        "schema_version",
+        "type",
+        "language",
+        "normalized",
+        "explanation"
+      ],
+      "optional_frontmatter": [
+        "aliases",
+        "tags",
+        "source",
+        "created_at",
+        "updated_at"
+      ],
+      "body_sections": [
+        "Explanation",
+        "Examples",
+        "Relations"
+      ],
+      "language_policy": {
+        "explanation_language": "english"
+      },
+      "relation_sections_allowed": true,
+      "indexable": true,
+      "fts_enabled": true
+    },
+    "transcript": {
+      "description": "A transcript or listening input source.",
+      "category": "source_item",
+      "key_policy_item_type": "transcript",
+      "default_folder_by_language": {
+        "english": "Transcripts/English",
+        "german": "Transcripts/German"
+      },
+      "required_frontmatter": [
+        "schema_version",
+        "type",
+        "language",
+        "source"
+      ],
+      "optional_frontmatter": [
+        "normalized",
+        "title",
+        "tags",
+        "created_at",
+        "updated_at"
+      ],
+      "body_sections": [
+        "Transcript",
+        "Notes",
+        "Relations"
+      ],
+      "language_policy": {
+        "summary_language": "english"
+      },
+      "relation_sections_allowed": true,
+      "indexable": true,
+      "fts_enabled": true
+    },
+    "tts_audio": {
+      "description": "A local TTS/audio artifact note linked to a language item.",
+      "category": "artifact_item",
+      "key_policy_item_type": "tts_audio",
+      "default_folder_by_language": {
+        "english": "Audio/English",
+        "german": "Audio/German"
+      },
+      "required_frontmatter": [
+        "schema_version",
+        "type",
+        "language",
+        "source"
+      ],
+      "optional_frontmatter": [
+        "normalized",
+        "audio_path",
+        "voice",
+        "duration_seconds",
+        "tags",
+        "created_at",
+        "updated_at"
+      ],
+      "body_sections": [
+        "Audio",
+        "Relations"
+      ],
+      "language_policy": {},
+      "relation_sections_allowed": true,
+      "indexable": true,
+      "fts_enabled": false
+    }
+  }
+}
