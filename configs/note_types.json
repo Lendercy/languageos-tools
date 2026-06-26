@@ -18,10 +18,10 @@
         "schema_version",
         "type",
         "language",
-        "normalized",
-        "meaning"
+        "normalized"
       ],
       "optional_frontmatter": [
+        "meaning",
         "aliases",
         "tags",
         "anki_status",
@@ -53,10 +53,10 @@
         "schema_version",
         "type",
         "language",
-        "normalized",
-        "meaning"
+        "normalized"
       ],
       "optional_frontmatter": [
+        "meaning",
         "aliases",
         "tags",
         "anki_status",
@@ -88,10 +88,10 @@
         "schema_version",
         "type",
         "language",
-        "normalized",
-        "explanation"
+        "normalized"
       ],
       "optional_frontmatter": [
+        "explanation",
         "aliases",
         "tags",
         "source",
@@ -111,22 +111,57 @@
       "fts_enabled": true
     },
     "transcript": {
-      "description": "A transcript or listening input source.",
+      "description": "A generic transcript or listening input source.",
       "category": "source_item",
       "key_policy_item_type": "transcript",
       "default_folder_by_language": {
-        "english": "Transcripts/English",
-        "german": "Transcripts/German"
+        "english": "Listening/Transcripts",
+        "german": "Listening/Transcripts"
       },
       "required_frontmatter": [
         "schema_version",
-        "type",
-        "language",
-        "source"
+        "type"
       ],
       "optional_frontmatter": [
+        "language",
         "normalized",
         "title",
+        "source",
+        "tags",
+        "created_at",
+        "updated_at"
+      ],
+      "body_sections": [
+        "Transcript",
+        "Notes",
+        "Relations"
+      ],
+      "language_policy": {
+        "summary_language": "english"
+      },
+      "relation_sections_allowed": true,
+      "indexable": true,
+      "fts_enabled": true
+    },
+    "listening_transcript": {
+      "description": "A transcript generated from listening/STT input.",
+      "category": "source_item",
+      "key_policy_item_type": "transcript",
+      "default_folder_by_language": {
+        "english": "Listening/Transcripts",
+        "german": "Listening/Transcripts"
+      },
+      "required_frontmatter": [
+        "schema_version",
+        "type"
+      ],
+      "optional_frontmatter": [
+        "language",
+        "normalized",
+        "title",
+        "source",
+        "audio_path",
+        "model",
         "tags",
         "created_at",
         "updated_at"
@@ -148,16 +183,16 @@
       "category": "artifact_item",
       "key_policy_item_type": "tts_audio",
       "default_folder_by_language": {
-        "english": "Audio/English",
-        "german": "Audio/German"
+        "english": "Speaking/TTS",
+        "german": "Speaking/TTS"
       },
       "required_frontmatter": [
         "schema_version",
         "type",
-        "language",
-        "source"
+        "language"
       ],
       "optional_frontmatter": [
+        "source",
         "normalized",
         "audio_path",
         "voice",
