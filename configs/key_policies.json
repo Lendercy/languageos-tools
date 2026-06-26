@@ -1,0 +1,34 @@
+{
+  "schema_version": "key_policy_registry_v1",
+  "default_profile": "key_v1",
+  "profiles": {
+    "key_v1": {
+      "description": "Default LanguageOS key normalization profile. Sentence keys strip terminal punctuation; vocabulary and grammar keys preserve terminal punctuation.",
+      "unicode_form": "NFKC",
+      "default_rules": {
+        "lowercase": true,
+        "trim": true,
+        "collapse_whitespace": true,
+        "strip_terminal_punctuation": false,
+        "terminal_punctuation_pattern": "[.!?。！？]+$"
+      },
+      "item_type_overrides": {
+        "sentence": {
+          "strip_terminal_punctuation": true
+        },
+        "vocabulary": {
+          "strip_terminal_punctuation": false
+        },
+        "grammar": {
+          "strip_terminal_punctuation": false
+        },
+        "transcript": {
+          "strip_terminal_punctuation": false
+        },
+        "tts_audio": {
+          "strip_terminal_punctuation": false
+        }
+      }
+    }
+  }
+}
