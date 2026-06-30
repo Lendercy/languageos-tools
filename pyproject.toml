@@ -1,10 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "languageos-tools"
 version = "0.1.0"
-description = "Automation tools for LanguageOS"
-requires-python = ">=3.12"
+description = "Local-first tools for building a personal LanguageOS system."
+requires-python = ">=3.11"
 dependencies = [
-    "requests>=2.32.0"
+    "requests>=2.32.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
 ]
 
 [tool.setuptools]
@@ -12,3 +21,7 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
