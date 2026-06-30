@@ -56,3 +56,4 @@ desktop.ini
 *.zip
 *.7z
 *.rar
+configs/local_apps.json

@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import argparse
-import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Sequence
 
 from nicegui import ui
 
+from languageos_tools.integrations.external_apps import (
+    ExternalAppConfig,
+    ExternalAppService,
+)
 from languageos_tools.study.study_service import (
     StudyCard,
     StudyFilter,
@@ -19,6 +22,7 @@ from languageos_tools.study.study_service import (
 class LearningUIConfig:
     vault_path: Path
     db_path: Path
+    local_apps_config_path: Path
     host: str = "127.0.0.1"
     port: int = 8082
 
@@ -33,9 +37,17 @@ class LanguageOSLearningApp:
 
     def __init__(self, config: LearningUIConfig) -> None:
         self.config = config
+
         self.study_service = StudyService(
             vault_path=config.vault_path,
             db_path=config.db_path,
+        )
+
+        self.external_apps = ExternalAppService(
+            ExternalAppConfig.load(
+                vault_path=config.vault_path,
+                config_path=config.local_apps_config_path,
+            )
         )
 
         self.cards: list[StudyCard] = []
@@ -140,6 +152,18 @@ class LanguageOSLearningApp:
                     on_click=self.reset_session,
                 ).props("outline")
 
+                ui.button(
+                    "Check Anki",
+                    icon="sync",
+                    on_click=self.check_anki_connect,
+                ).props("outline")
+
+                ui.button(
+                    "Open Anki",
+                    icon="style",
+                    on_click=self.open_anki_app,
+                ).props("outline")
+
     def _build_study_area(self) -> None:
         self.card_container = ui.column().classes("w-full gap-4")
 
@@ -172,8 +196,10 @@ class LanguageOSLearningApp:
         self.easy_count = 0
         self.current_index = 0
         self.answer_revealed = False
+
         self._update_summary()
         self._render_current_card()
+
         ui.notify("Session reset.", type="info")
 
     def reveal_answer(self) -> None:
@@ -201,6 +227,7 @@ class LanguageOSLearningApp:
             ui.notify("Deck finished.", type="positive")
 
         self.answer_revealed = False
+
         self._update_summary()
         self._render_current_card()
 
@@ -210,6 +237,7 @@ class LanguageOSLearningApp:
 
         self.current_index = max(0, self.current_index - 1)
         self.answer_revealed = False
+
         self._update_summary()
         self._render_current_card()
 
@@ -219,6 +247,7 @@ class LanguageOSLearningApp:
 
         self.current_index = min(len(self.cards) - 1, self.current_index + 1)
         self.answer_revealed = False
+
         self._update_summary()
         self._render_current_card()
 
@@ -228,18 +257,47 @@ class LanguageOSLearningApp:
             return
 
         ui.clipboard.write(card.file_path)
-        ui.notify("Copied note path.", type="positive")
+        ui.notify("Copied file path.", type="positive")
+
+    def copy_current_obsidian_uri(self) -> None:
+        card = self._current_card()
+        if card is None:
+            return
+
+        try:
+            uri = self.external_apps.build_obsidian_uri(card.file_path)
+        except Exception as exc:
+            ui.notify(f"Could not build Obsidian URI: {exc}", type="negative")
+            return
+
+        ui.clipboard.write(uri)
+        ui.notify("Copied Obsidian URI.", type="positive")
 
     def open_current_note(self) -> None:
         card = self._current_card()
         if card is None:
             return
 
-        try:
-            os.startfile(card.file_path)  # type: ignore[attr-defined]
-            ui.notify("Opening note.", type="positive")
-        except Exception as exc:
-            ui.notify(f"Could not open note: {exc}", type="negative")
+        result = self.external_apps.open_obsidian_note(card.file_path)
+        ui.notify(
+            result.message,
+            type="positive" if result.success else "negative",
+        )
+
+    def open_anki_app(self) -> None:
+        result = self.external_apps.open_anki_app()
+        ui.notify(
+            result.message,
+            type="positive" if result.success else "negative",
+        )
+
+    def check_anki_connect(self) -> None:
+        status = self.external_apps.check_anki_connect()
+        ui.notify(
+            status.message,
+            type="positive" if status.online else "warning",
+            timeout=5000,
+        )
 
     def _render_current_card(self) -> None:
         if self.card_container is None:
@@ -258,6 +316,7 @@ class LanguageOSLearningApp:
                 with ui.grid(columns=2).classes("w-full gap-4"):
                     self._render_front_card(card, compact=True)
                     self._render_answer_panel(card)
+
                 self._render_rating_buttons()
             else:
                 self._render_front_card(card, compact=False)
@@ -336,7 +395,13 @@ class LanguageOSLearningApp:
                 ).props("flat size=sm")
 
                 ui.button(
-                    "Open Note",
+                    "Copy Obsidian URI",
+                    icon="link",
+                    on_click=self.copy_current_obsidian_uri,
+                ).props("flat size=sm")
+
+                ui.button(
+                    "Open Obsidian",
                     icon="open_in_new",
                     on_click=self.open_current_note,
                 ).props("flat size=sm")
@@ -369,7 +434,10 @@ class LanguageOSLearningApp:
                 )
 
                 for relation in card.relations:
-                    self._render_relation_chip(relation.display_label, relation.display_item)
+                    self._render_relation_chip(
+                        relation.display_label,
+                        relation.display_item,
+                    )
 
             ui.separator()
             ui.label(card.file_path).classes(
@@ -437,8 +505,10 @@ class LanguageOSLearningApp:
     def _current_card(self) -> StudyCard | None:
         if not self.cards:
             return None
+
         if self.current_index < 0 or self.current_index >= len(self.cards):
             return None
+
         return self.cards[self.current_index]
 
 
@@ -457,6 +527,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
         type=Path,
         default=Path(r"D:\LanguageOS\Inbox\Indexes\languageos.db"),
         help="LanguageOS SQLite DB path.",
+    )
+    parser.add_argument(
+        "--local-apps-config",
+        type=Path,
+        default=Path("configs/local_apps.json"),
+        help="Local external app config path.",
     )
     parser.add_argument(
         "--host",
@@ -490,6 +566,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         LearningUIConfig(
             vault_path=args.vault,
             db_path=args.db,
+            local_apps_config_path=args.local_apps_config,
             host=args.host,
             port=args.port,
         )
