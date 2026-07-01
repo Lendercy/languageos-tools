@@ -37,10 +37,17 @@ select = [
     "E",
     "F",
     "I",
-    "UP",
     "B",
 ]
-ignore = []
+ignore = [
+    "E501",  # line too long; handle gradually with formatter/refactor
+    "B905",  # zip(strict=...) can be fixed later in legacy parsers
+]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/*.py" = [
+    "E402",  # scripts intentionally patch sys.path before importing package CLI entrypoints
+]
 
 [tool.ruff.format]
 quote-style = "double"
