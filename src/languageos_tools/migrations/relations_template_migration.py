@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
 
 from languageos_tools.core.frontmatter import FrontmatterParser
 from languageos_tools.core.models import FrontmatterDocument
 from languageos_tools.migrations.migration_runner import MigrationContext
 from languageos_tools.obsidian.note import VaultNote
-
 
 RELATIONS_TEMPLATE_VERSION = "1.1"
 
@@ -107,7 +106,9 @@ class RelationsTemplateMigration:
 
         return item_type in ITEM_RELATION_SECTIONS
 
-    def migrate_note(self, note: VaultNote, context: MigrationContext) -> VaultNote | None:
+    def migrate_note(
+        self, note: VaultNote, context: MigrationContext
+    ) -> VaultNote | None:
         parser = FrontmatterParser()
         document = note.parse(parser)
 
@@ -152,7 +153,9 @@ class RelationsTemplateMigration:
                 level=2,
             )
 
-            if self._is_auto_generated_empty_relations_section(existing_relations_section):
+            if self._is_auto_generated_empty_relations_section(
+                existing_relations_section
+            ):
                 new_body = self._replace_section(
                     body=new_body,
                     heading="Relations",
@@ -312,11 +315,7 @@ class RelationsTemplateMigration:
         if not cleaned:
             return True
 
-        lines = [
-            line.strip()
-            for line in cleaned.splitlines()
-            if line.strip()
-        ]
+        lines = [line.strip() for line in cleaned.splitlines() if line.strip()]
 
         real_content_lines: list[str] = []
 

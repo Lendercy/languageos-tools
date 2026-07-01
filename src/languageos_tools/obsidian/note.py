@@ -66,7 +66,7 @@ class VaultNote:
         self,
         document: FrontmatterDocument,
         parser: FrontmatterParser | None = None,
-    ) -> "VaultNote":
+    ) -> VaultNote:
         parser = parser or FrontmatterParser()
         new_text = parser.render(document)
 
@@ -76,7 +76,7 @@ class VaultNote:
             text=new_text,
         )
 
-    def with_text(self, text: str) -> "VaultNote":
+    def with_text(self, text: str) -> VaultNote:
         return VaultNote(
             vault_root=self.vault_root,
             absolute_path=self.absolute_path,

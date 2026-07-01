@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 from languageos_tools.core.normalization import (
     NormalizationConfig,
@@ -24,7 +25,7 @@ class KeyPolicyRule:
     terminal_punctuation_pattern: str
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any]) -> "KeyPolicyRule":
+    def from_mapping(cls, data: Mapping[str, Any]) -> KeyPolicyRule:
         return cls(
             lowercase=bool(data.get("lowercase", True)),
             trim=bool(data.get("trim", True)),
@@ -37,7 +38,7 @@ class KeyPolicyRule:
             ),
         )
 
-    def merge(self, override: Mapping[str, Any]) -> "KeyPolicyRule":
+    def merge(self, override: Mapping[str, Any]) -> KeyPolicyRule:
         data = {
             "lowercase": self.lowercase,
             "trim": self.trim,
@@ -96,7 +97,7 @@ class KeyPolicyRegistry:
     EXPECTED_SCHEMA_VERSION = "key_policy_registry_v1"
 
     @classmethod
-    def load(cls, path: Path) -> "KeyPolicyRegistry":
+    def load(cls, path: Path) -> KeyPolicyRegistry:
         if not path.exists():
             raise FileNotFoundError(f"Key policy registry does not exist: {path}")
 
@@ -104,12 +105,12 @@ class KeyPolicyRegistry:
         return cls.from_mapping(data)
 
     @classmethod
-    def load_default(cls) -> "KeyPolicyRegistry":
+    def load_default(cls) -> KeyPolicyRegistry:
         project_root = Path(__file__).resolve().parents[3]
         return cls.load(project_root / "configs" / "key_policies.json")
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any]) -> "KeyPolicyRegistry":
+    def from_mapping(cls, data: Mapping[str, Any]) -> KeyPolicyRegistry:
         schema_version = str(data.get("schema_version", "")).strip()
         if schema_version != cls.EXPECTED_SCHEMA_VERSION:
             raise KeyPolicyError(
@@ -171,8 +172,7 @@ class KeyPolicyRegistry:
         for item_type, raw_override in raw_overrides.items():
             if not isinstance(raw_override, dict):
                 raise KeyPolicyError(
-                    f"Invalid override for item_type {item_type!r} "
-                    f"in profile {name!r}."
+                    f"Invalid override for item_type {item_type!r} in profile {name!r}."
                 )
 
             normalized_item_type = str(item_type).strip().casefold()
@@ -195,7 +195,11 @@ class KeyPolicyRegistry:
         try:
             return self.profiles[profile_name]
         except KeyError as exc:
-            raise KeyPolicyError(f"Unknown key policy profile: {profile_name!r}") from exc
+            raise KeyPolicyError(
+                f"Unknown key policy profile: {profile_name!r}"
+            ) from exc
 
-    def to_normalization_config(self, profile_name: str | None = None) -> NormalizationConfig:
+    def to_normalization_config(
+        self, profile_name: str | None = None
+    ) -> NormalizationConfig:
         return self.get_profile(profile_name).to_normalization_config()

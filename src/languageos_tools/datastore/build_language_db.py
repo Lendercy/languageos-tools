@@ -9,7 +9,6 @@ from pathlib import Path
 
 from languageos_tools.datastore.db import connect_db, get_or_create_lookup_id, init_db
 
-
 CONFIG_PATH = Path("configs/languageos.config.json")
 
 
@@ -246,12 +245,16 @@ def normalize_language(metadata: dict, path: Path) -> str:
     if direct_language != "unknown":
         return direct_language
 
-    language_setting = normalize_language_value(str(metadata.get("language_setting") or ""))
+    language_setting = normalize_language_value(
+        str(metadata.get("language_setting") or "")
+    )
 
     if language_setting != "unknown":
         return language_setting
 
-    detected_language = normalize_language_value(str(metadata.get("detected_language") or ""))
+    detected_language = normalize_language_value(
+        str(metadata.get("detected_language") or "")
+    )
 
     if detected_language != "unknown":
         return detected_language

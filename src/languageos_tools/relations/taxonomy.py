@@ -24,7 +24,7 @@ class RelationTypeDefinition:
     enabled: bool = True
 
     @classmethod
-    def from_dict(cls, payload: dict[str, Any]) -> "RelationTypeDefinition":
+    def from_dict(cls, payload: dict[str, Any]) -> RelationTypeDefinition:
         required_keys = {
             "id",
             "label",
@@ -77,7 +77,7 @@ class RelationTaxonomy:
     definitions: dict[str, RelationTypeDefinition]
 
     @classmethod
-    def load(cls, path: Path) -> "RelationTaxonomy":
+    def load(cls, path: Path) -> RelationTaxonomy:
         if not path.exists():
             raise FileNotFoundError(f"Relation taxonomy file not found: {path}")
 
@@ -143,9 +143,7 @@ class RelationTaxonomy:
 
     def enabled_definitions(self) -> list[RelationTypeDefinition]:
         return [
-            definition
-            for definition in self.definitions.values()
-            if definition.enabled
+            definition for definition in self.definitions.values() if definition.enabled
         ]
 
     def normalize_relation_id(self, relation_type: str | RelationType) -> str:

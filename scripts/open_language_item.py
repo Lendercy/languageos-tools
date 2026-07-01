@@ -9,7 +9,6 @@ from urllib.parse import quote
 
 from languageos_tools.datastore.activity import print_touch_result, touch_by_query
 
-
 CONFIG_PATH = Path("configs/languageos.config.json")
 
 
@@ -32,7 +31,7 @@ def open_in_obsidian(note_path: Path) -> None:
         os.startfile(uri)  # type: ignore[attr-defined]
         return
 
-    print(f"[WARN] Auto-open is currently only supported on Windows.")
+    print("[WARN] Auto-open is currently only supported on Windows.")
     print(f"Open manually: {note_path}")
 
 

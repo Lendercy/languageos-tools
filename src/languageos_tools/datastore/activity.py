@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import argparse
 import json
 import re
 import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
-
 
 CONFIG_PATH = Path("configs/languageos.config.json")
 
@@ -418,43 +416,60 @@ def get_activity_report(
         params.append(item_type)
 
     if view == "never-accessed":
-        sql = base_select + """
+        sql = (
+            base_select
+            + """
             AND COALESCE(a.access_count, 0) = 0
             ORDER BY i.seen_count DESC, i.text
             LIMIT ?
         """
+        )
 
     elif view == "least-accessed":
-        sql = base_select + """
+        sql = (
+            base_select
+            + """
             ORDER BY COALESCE(a.access_count, 0) ASC, i.seen_count DESC, i.text
             LIMIT ?
         """
+        )
 
     elif view == "oldest-accessed":
-        sql = base_select + """
+        sql = (
+            base_select
+            + """
             AND a.last_accessed_at IS NOT NULL
             ORDER BY a.last_accessed_at ASC
             LIMIT ?
         """
+        )
 
     elif view == "recently-accessed":
-        sql = base_select + """
+        sql = (
+            base_select
+            + """
             AND a.last_accessed_at IS NOT NULL
             ORDER BY a.last_accessed_at DESC
             LIMIT ?
         """
+        )
 
     elif view == "high-seen-low-access":
-        sql = base_select + """
+        sql = (
+            base_select
+            + """
             AND i.seen_count >= 2
             AND COALESCE(a.access_count, 0) <= 1
             ORDER BY i.seen_count DESC, COALESCE(a.access_count, 0) ASC
             LIMIT ?
         """
+        )
 
     elif view == "stale-learning":
         cutoff = (datetime.now() - timedelta(days=14)).isoformat(timespec="seconds")
-        sql = base_select + """
+        sql = (
+            base_select
+            + """
             AND i.status = 'learning'
             AND (
                 a.last_accessed_at IS NULL
@@ -466,6 +481,7 @@ def get_activity_report(
                 i.seen_count DESC
             LIMIT ?
         """
+        )
         params.append(cutoff)
 
     else:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
 from languageos_tools.search.lookup_service import main as lookup_main
 

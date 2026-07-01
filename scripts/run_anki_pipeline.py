@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from languageos_tools.anki.card_candidates import main as generate_candidates
 from languageos_tools.anki.approve_candidates import main as approve_candidates
+from languageos_tools.anki.card_candidates import main as generate_candidates
 from languageos_tools.obsidian.sentence_bank import main as sync_sentence_bank_status
 
 

@@ -6,7 +6,6 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 
-
 CONFIG_PATH = Path("configs/languageos.config.json")
 
 
@@ -320,7 +319,9 @@ def main() -> None:
 
     if update_count == 0:
         print("Hint: No visible changes were needed.")
-        print("Hint: If Obsidian is open, refresh/reopen the note after running this script.")
+        print(
+            "Hint: If Obsidian is open, refresh/reopen the note after running this script."
+        )
 
 
 if __name__ == "__main__":

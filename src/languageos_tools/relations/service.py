@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
 
 from languageos_tools.core.enums import RelationType
 from languageos_tools.core.models import ItemRelation, LanguageItemKey

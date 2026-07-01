@@ -6,10 +6,11 @@ import json
 import logging
 import re
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 from languageos_tools.core.normalization import (
     ItemKey,
@@ -18,7 +19,6 @@ from languageos_tools.core.normalization import (
     MarkdownFrontmatterReader,
     NormalizationConfig,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +80,9 @@ class KeyNormalizationMigrationReport:
                 "changed_items": len(self.changed_items),
                 "changed_files": len(self.changed_files),
             },
-            "changed_items": [dataclasses.asdict(change) for change in self.changed_items],
+            "changed_items": [
+                dataclasses.asdict(change) for change in self.changed_items
+            ],
             "changed_files": list(self.changed_files),
             "actions": dict(self.actions),
         }
@@ -106,7 +108,7 @@ class FrontmatterDocument:
         cls,
         text: str,
         reader: MarkdownFrontmatterReader,
-    ) -> "FrontmatterDocument | None":
+    ) -> FrontmatterDocument | None:
         lines = tuple(text.splitlines(keepends=True))
 
         if not lines:
@@ -156,7 +158,9 @@ class FrontmatterDocument:
                 continue
 
             formatted_value = self._format_scalar_value(value, raw_value)
-            updated_lines[index] = f"{prefix}{raw_key}{separator}{formatted_value}{newline or ''}"
+            updated_lines[index] = (
+                f"{prefix}{raw_key}{separator}{formatted_value}{newline or ''}"
+            )
             return "".join(updated_lines)
 
         return self.original_text
@@ -283,7 +287,9 @@ class KeyNormalizationMigrationService:
             raise FileNotFoundError(f"Vault path does not exist: {vault_path}")
 
         if apply and backup_root is None:
-            raise KeyNormalizationMigrationError("--backup-root is required when applying.")
+            raise KeyNormalizationMigrationError(
+                "--backup-root is required when applying."
+            )
 
         snapshots = self._load_snapshots(vault_path)
         changes = self._compute_item_key_changes(snapshots)
@@ -315,7 +321,9 @@ class KeyNormalizationMigrationService:
             profile=self.normalizer.config.profile.value,
             vault_path=str(vault_path),
             backup_root=str(backup_root.resolve()) if backup_root is not None else None,
-            backup_batch_path=str(backup_batch_path) if backup_batch_path is not None else None,
+            backup_batch_path=str(backup_batch_path)
+            if backup_batch_path is not None
+            else None,
             changed_items=changes,
             changed_files=tuple(str(plan.file_path) for plan in changed_plans),
             actions={
@@ -402,9 +410,7 @@ class KeyNormalizationMigrationService:
             current_key_to_files[snapshot.item_key.render()].append(str(snapshot.path))
 
         duplicate_current = {
-            key: files
-            for key, files in current_key_to_files.items()
-            if len(files) > 1
+            key: files for key, files in current_key_to_files.items() if len(files) > 1
         }
         if duplicate_current:
             raise KeyNormalizationMigrationError(
@@ -549,9 +555,7 @@ class KeyNormalizationMigrationService:
     ) -> Path:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         backup_batch_path = (
-            backup_root.resolve()
-            / "KeyNormalizationMigration_v1"
-            / timestamp
+            backup_root.resolve() / "KeyNormalizationMigration_v1" / timestamp
         )
 
         for plan in plans:

@@ -9,7 +9,6 @@ from pathlib import Path
 
 import edge_tts
 
-
 CONFIG_PATH = Path("configs/languageos.config.json")
 
 

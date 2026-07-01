@@ -5,7 +5,6 @@ from pathlib import Path
 
 import requests
 
-
 CONFIG_PATH = Path("configs/languageos.config.json")
 
 
@@ -78,7 +77,9 @@ def escape_anki_query_text(text: str) -> str:
     return text.replace('"', '\\"')
 
 
-def find_existing_notes_by_front(anki_url: str, deck_name: str, front: str) -> list[int]:
+def find_existing_notes_by_front(
+    anki_url: str, deck_name: str, front: str
+) -> list[int]:
     """
     Try to find existing notes with the same Front text in the target deck.
 

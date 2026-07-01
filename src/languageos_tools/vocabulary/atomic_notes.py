@@ -5,7 +5,6 @@ import re
 from datetime import date
 from pathlib import Path
 
-
 CONFIG_PATH = Path("configs/languageos.config.json")
 
 

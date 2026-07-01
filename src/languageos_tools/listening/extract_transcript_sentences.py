@@ -7,7 +7,6 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
-
 CONFIG_PATH = Path("configs/languageos.config.json")
 
 

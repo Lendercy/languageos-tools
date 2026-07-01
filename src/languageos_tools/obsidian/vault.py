@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
 from languageos_tools.obsidian.note import VaultNote
 
@@ -31,7 +31,9 @@ class ObsidianVault:
             raise FileNotFoundError(f"Obsidian vault not found: {self.root}")
 
         if not self.root.is_dir():
-            raise NotADirectoryError(f"Obsidian vault path is not a directory: {self.root}")
+            raise NotADirectoryError(
+                f"Obsidian vault path is not a directory: {self.root}"
+            )
 
     def resolve_path(self, relative_or_absolute_path: str | Path) -> Path:
         path = Path(relative_or_absolute_path)

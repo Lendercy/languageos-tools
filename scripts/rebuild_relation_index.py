@@ -16,7 +16,6 @@ from languageos_tools.relations.parser import (
 from languageos_tools.relations.service import RelationService
 from languageos_tools.relations.taxonomy import RelationTaxonomy
 
-
 CONFIG_PATH = Path("configs/languageos.config.json")
 RELATION_TAXONOMY_PATH = Path("src/languageos_tools/relations/relation_types.json")
 
@@ -109,11 +108,7 @@ def main() -> None:
     print("-" * 60)
 
     for row in repository.list_relations(limit=args.limit):
-        print(
-            f"{row['source_key']} "
-            f"--{row['relation_type']}--> "
-            f"{row['target_key']}"
-        )
+        print(f"{row['source_key']} --{row['relation_type']}--> {row['target_key']}")
         print(f"  evidence: {row['evidence']}")
         print(f"  source  : {row['source_path']}")
         print(f"  target  : {row['target_path']}")

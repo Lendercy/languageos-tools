@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
 from languageos_tools.core.enums import RelationType
 from languageos_tools.core.models import LanguageItemKey
 from languageos_tools.obsidian.note import VaultNote
 from languageos_tools.relations.service import RelationCandidate, RelationService
-
 
 WIKILINK_PATTERN = re.compile(r"\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|([^\]]+))?\]\]")
 

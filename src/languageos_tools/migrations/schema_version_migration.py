@@ -40,7 +40,9 @@ class SchemaVersionMigration:
 
         return True
 
-    def migrate_note(self, note: VaultNote, context: MigrationContext) -> VaultNote | None:
+    def migrate_note(
+        self, note: VaultNote, context: MigrationContext
+    ) -> VaultNote | None:
         parser = FrontmatterParser()
         document = note.parse(parser)
 

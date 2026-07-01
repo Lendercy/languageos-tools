@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-
 CONFIG_PATH = Path("configs/languageos.config.json")
 
 
@@ -301,11 +300,17 @@ def enrich_sentence_note(
             detected_vocab_links.append(vocab.obsidian_link)
             detected_grammar_links.extend(vocab.related_grammar_links)
 
-    existing_vocab_links = extract_wikilinks(get_markdown_section(body, "Contains Vocabulary"))
-    existing_grammar_links = extract_wikilinks(get_markdown_section(body, "Grammar / Pattern"))
+    existing_vocab_links = extract_wikilinks(
+        get_markdown_section(body, "Contains Vocabulary")
+    )
+    existing_grammar_links = extract_wikilinks(
+        get_markdown_section(body, "Grammar / Pattern")
+    )
 
     final_vocab_links = unique_keep_order(detected_vocab_links + existing_vocab_links)
-    final_grammar_links = unique_keep_order(detected_grammar_links + existing_grammar_links)
+    final_grammar_links = unique_keep_order(
+        detected_grammar_links + existing_grammar_links
+    )
 
     if not final_vocab_links and not final_grammar_links:
         return {
@@ -380,7 +385,9 @@ def backup_sentence_notes(vault_root: Path, backup_root: Path) -> int:
 def enrich_sentence_links(dry_run: bool, backup: bool) -> dict:
     config = load_config()
     vault_root = Path(config["obsidian_vault"])
-    backup_root = Path(config["languageos_root"]) / "Inbox" / "Backups" / "SentenceLinkEnrichment"
+    backup_root = (
+        Path(config["languageos_root"]) / "Inbox" / "Backups" / "SentenceLinkEnrichment"
+    )
 
     vocab_items = load_vocabulary_items(vault_root)
     sentence_root = vault_root / "Sentences"
@@ -488,7 +495,9 @@ def print_summary(payload: dict) -> None:
                 print(f"  grammar   : {', '.join(grammar_links)}")
 
         elif status == "unchanged":
-            print(f"[OK] {result.get('sentence', path)} — {result.get('reason', 'unchanged')}")
+            print(
+                f"[OK] {result.get('sentence', path)} — {result.get('reason', 'unchanged')}"
+            )
         elif status == "skipped":
             print(f"[SKIP] {path} — {result.get('reason')}")
         elif status == "error":

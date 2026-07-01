@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-
 CONFIG_PATH = Path("configs/languageos.config.json")
 
 

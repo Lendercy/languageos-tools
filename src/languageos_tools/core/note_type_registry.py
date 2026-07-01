@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 
 class NoteTypeRegistryError(RuntimeError):
@@ -17,7 +18,7 @@ class LanguagePolicy:
     explanation_language: str = "english"
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any]) -> "LanguagePolicy":
+    def from_mapping(cls, data: Mapping[str, Any]) -> LanguagePolicy:
         raw_supported = data.get("supported_languages", [])
         if not isinstance(raw_supported, list) or not raw_supported:
             raise NoteTypeRegistryError(
@@ -37,10 +38,12 @@ class LanguagePolicy:
 
         return cls(
             supported_languages=supported_languages,
-            meaning_language=str(data.get("meaning_language", "english")).strip().casefold(),
-            explanation_language=str(
-                data.get("explanation_language", "english")
-            ).strip().casefold(),
+            meaning_language=str(data.get("meaning_language", "english"))
+            .strip()
+            .casefold(),
+            explanation_language=str(data.get("explanation_language", "english"))
+            .strip()
+            .casefold(),
         )
 
     def supports_language(self, language: str) -> bool:
@@ -69,14 +72,14 @@ class NoteTypeDefinition:
         name: str,
         data: Mapping[str, Any],
         global_language_policy: LanguagePolicy,
-    ) -> "NoteTypeDefinition":
+    ) -> NoteTypeDefinition:
         normalized_name = name.strip().casefold()
         if not normalized_name:
             raise NoteTypeRegistryError("Note type name cannot be empty.")
 
-        key_policy_item_type = str(
-            data.get("key_policy_item_type", normalized_name)
-        ).strip().casefold()
+        key_policy_item_type = (
+            str(data.get("key_policy_item_type", normalized_name)).strip().casefold()
+        )
 
         required_frontmatter = cls._read_string_tuple(
             data=data,
@@ -147,11 +150,7 @@ class NoteTypeDefinition:
         if not isinstance(raw_value, list):
             raise NoteTypeRegistryError(f"{key} must be a list.")
 
-        values = tuple(
-            str(item).strip()
-            for item in raw_value
-            if str(item).strip()
-        )
+        values = tuple(str(item).strip() for item in raw_value if str(item).strip())
 
         if required and not values:
             raise NoteTypeRegistryError(f"{key} cannot be empty.")
@@ -197,7 +196,7 @@ class NoteTypeRegistry:
     EXPECTED_SCHEMA_VERSION = "note_type_registry_v1"
 
     @classmethod
-    def load(cls, path: Path) -> "NoteTypeRegistry":
+    def load(cls, path: Path) -> NoteTypeRegistry:
         if not path.exists():
             raise FileNotFoundError(f"Note type registry does not exist: {path}")
 
@@ -205,12 +204,12 @@ class NoteTypeRegistry:
         return cls.from_mapping(data)
 
     @classmethod
-    def load_default(cls) -> "NoteTypeRegistry":
+    def load_default(cls) -> NoteTypeRegistry:
         project_root = Path(__file__).resolve().parents[3]
         return cls.load(project_root / "configs" / "note_types.json")
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any]) -> "NoteTypeRegistry":
+    def from_mapping(cls, data: Mapping[str, Any]) -> NoteTypeRegistry:
         schema_version = str(data.get("schema_version", "")).strip()
 
         if schema_version != cls.EXPECTED_SCHEMA_VERSION:
@@ -300,21 +299,20 @@ def describe_registry(registry: NoteTypeRegistry) -> str:
         lines.append(f"    indexable             : {definition.indexable}")
         lines.append(f"    fts_enabled           : {definition.fts_enabled}")
         lines.append(
-            "    required_frontmatter  : "
-            + ", ".join(definition.required_frontmatter)
+            "    required_frontmatter  : " + ", ".join(definition.required_frontmatter)
         )
         lines.append(
-            "    optional_frontmatter  : "
-            + ", ".join(definition.optional_frontmatter)
+            "    optional_frontmatter  : " + ", ".join(definition.optional_frontmatter)
         )
         lines.append(
-            "    body_sections         : "
-            + ", ".join(definition.body_sections)
+            "    body_sections         : " + ", ".join(definition.body_sections)
         )
 
         if definition.default_folder_by_language:
             lines.append("    folders:")
-            for language, folder in sorted(definition.default_folder_by_language.items()):
+            for language, folder in sorted(
+                definition.default_folder_by_language.items()
+            ):
                 lines.append(f"      {language}: {folder}")
 
     return "\n".join(lines)

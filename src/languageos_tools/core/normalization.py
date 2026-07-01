@@ -8,11 +8,11 @@ import re
 import sqlite3
 import unicodedata
 from collections import Counter
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Iterable, Mapping, Sequence
-
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +74,7 @@ class ItemKey:
     normalized: str
 
     @classmethod
-    def parse(cls, value: str) -> "ItemKey":
+    def parse(cls, value: str) -> ItemKey:
         parts = value.split("|", maxsplit=2)
         if len(parts) != 3:
             raise ValueError(
@@ -175,7 +175,9 @@ class ItemKeyNormalizer:
             self.config.terminal_punctuation_pattern
         )
 
-    def normalize_text(self, text: str, *, item_type: str | None = None) -> NormalizationResult:
+    def normalize_text(
+        self, text: str, *, item_type: str | None = None
+    ) -> NormalizationResult:
         operations: list[str] = []
         value = text
 
@@ -217,7 +219,9 @@ class ItemKeyNormalizer:
             operations=tuple(operations),
         )
 
-    def normalize_item_key(self, item_key: ItemKey) -> tuple[ItemKey, NormalizationResult]:
+    def normalize_item_key(
+        self, item_key: ItemKey
+    ) -> tuple[ItemKey, NormalizationResult]:
         result = self.normalize_text(
             item_key.normalized,
             item_type=item_key.item_type,
@@ -296,11 +300,7 @@ class MarkdownFrontmatterReader:
         if value in {"false", "False", "FALSE"}:
             return False
 
-        if (
-            len(value) >= 2
-            and value[0] == value[-1]
-            and value[0] in {'"', "'"}
-        ):
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
             return value[1:-1]
 
         return value
@@ -326,7 +326,9 @@ class ItemKeyExtractor:
             try:
                 return ItemKey.parse(explicit_key)
             except ValueError:
-                logger.debug("Invalid explicit item key in frontmatter: %r", explicit_key)
+                logger.debug(
+                    "Invalid explicit item key in frontmatter: %r", explicit_key
+                )
 
         item_type = self._first_str(frontmatter, self.TYPE_FIELDS)
         language = self._first_str(frontmatter, self.LANGUAGE_FIELDS)
@@ -383,11 +385,14 @@ class VaultKeyAuditSource:
             if item_key is None:
                 continue
 
-            yield item_key, {
-                "source": "vault",
-                "file_path": str(path),
-                "note_title": path.stem,
-            }
+            yield (
+                item_key,
+                {
+                    "source": "vault",
+                    "file_path": str(path),
+                    "note_title": path.stem,
+                },
+            )
 
 
 class DatabaseKeyAuditSource:
@@ -472,7 +477,9 @@ class DatabaseKeyAuditSource:
         connection: sqlite3.Connection,
         table_name: str,
     ) -> tuple[sqlite3.Row, ...]:
-        return tuple(connection.execute(f'PRAGMA table_info("{table_name}")').fetchall())
+        return tuple(
+            connection.execute(f'PRAGMA table_info("{table_name}")').fetchall()
+        )
 
     def _first_existing(
         self,
@@ -512,10 +519,13 @@ class DatabaseKeyAuditSource:
                 )
                 continue
 
-            yield item_key, {
-                "source": f"db:{table_name}",
-                "db_rowid": int(row["__rowid__"]),
-            }
+            yield (
+                item_key,
+                {
+                    "source": f"db:{table_name}",
+                    "db_rowid": int(row["__rowid__"]),
+                },
+            )
 
     def _iter_composed_key_rows(
         self,
@@ -545,14 +555,17 @@ class DatabaseKeyAuditSource:
             if not item_type or not language or not normalized:
                 continue
 
-            yield ItemKey(
-                item_type=item_type,
-                language=language,
-                normalized=normalized,
-            ), {
-                "source": f"db:{table_name}",
-                "db_rowid": int(row["__rowid__"]),
-            }
+            yield (
+                ItemKey(
+                    item_type=item_type,
+                    language=language,
+                    normalized=normalized,
+                ),
+                {
+                    "source": f"db:{table_name}",
+                    "db_rowid": int(row["__rowid__"]),
+                },
+            )
 
 
 class KeyNormalizationAuditService:
@@ -699,7 +712,9 @@ def run_audit_from_args(args: argparse.Namespace) -> int:
             print(f"    ops     : {', '.join(record.operations)}")
 
     if len(records) > args.limit:
-        print(f"... truncated {len(records) - args.limit} records. Use --limit to show more.")
+        print(
+            f"... truncated {len(records) - args.limit} records. Use --limit to show more."
+        )
 
     if args.output_json is not None:
         report.write_json(args.output_json)

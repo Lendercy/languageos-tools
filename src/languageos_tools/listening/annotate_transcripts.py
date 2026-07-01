@@ -6,7 +6,6 @@ import re
 import sqlite3
 from pathlib import Path
 
-
 CONFIG_PATH = Path("configs/languageos.config.json")
 
 
@@ -287,11 +286,7 @@ def status_to_icon(status: str) -> str:
 
 
 def html_escape(text: str) -> str:
-    return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-    )
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
 def build_obsidian_link_from_item(item: dict, display_text: str) -> str:
@@ -378,9 +373,7 @@ def annotate_transcript_note(
         annotated_sentences.append(build_annotated_sentence(sentence, item))
 
     annotated_block = (
-        "\n\n## Annotated Transcript\n\n"
-        + "\n\n".join(annotated_sentences)
-        + "\n"
+        "\n\n## Annotated Transcript\n\n" + "\n\n".join(annotated_sentences) + "\n"
     )
 
     body_without_old_annotation = remove_existing_annotated_section(body)

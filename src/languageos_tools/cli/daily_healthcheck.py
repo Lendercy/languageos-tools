@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
 from languageos_tools.pipeline.daily_healthcheck import main as daily_healthcheck_main
 

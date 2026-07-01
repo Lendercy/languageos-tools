@@ -7,7 +7,6 @@ import sqlite3
 from difflib import SequenceMatcher
 from pathlib import Path
 
-
 CONFIG_PATH = Path("configs/languageos.config.json")
 
 

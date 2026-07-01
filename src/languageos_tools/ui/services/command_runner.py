@@ -4,9 +4,9 @@ import asyncio
 import dataclasses
 import sys
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence
 
 
 @dataclass(frozen=True)
@@ -115,7 +115,7 @@ class CommandRunner:
                 process.communicate(),
                 timeout=spec.timeout_seconds,
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             process.kill()
             await process.wait()
 

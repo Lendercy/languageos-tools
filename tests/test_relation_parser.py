@@ -143,6 +143,4 @@ aber, trotzdem, obwohl
     assert len(relations) == 1
     assert relations[0].relation_type.value == "uses_grammar"
     assert relations[0].source_key.as_string() == "vocabulary|german|trotzdem"
-    assert relations[0].target_key.as_string() == (
-        "grammar|german|contrast connectors"
-    )
+    assert relations[0].target_key.as_string() == ("grammar|german|contrast connectors")

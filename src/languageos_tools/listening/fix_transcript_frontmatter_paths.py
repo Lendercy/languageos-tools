@@ -4,7 +4,6 @@ import json
 import re
 from pathlib import Path
 
-
 CONFIG_PATH = Path("configs/languageos.config.json")
 
 

@@ -15,7 +15,6 @@ from languageos_tools.core.enums import (
     ReviewStatus,
 )
 
-
 DEFAULT_SCHEMA_VERSION = "1.0"
 
 
@@ -26,7 +25,7 @@ class LanguageOSPaths:
     languageos_db: Path
 
     @classmethod
-    def from_config(cls, config: dict[str, Any]) -> "LanguageOSPaths":
+    def from_config(cls, config: dict[str, Any]) -> LanguageOSPaths:
         outputs = config.get("outputs", {})
 
         languageos_root = Path(config["languageos_root"])

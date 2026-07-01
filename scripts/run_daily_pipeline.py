@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from languageos_tools.vocabulary.approve_vocabulary import main as approve_vocabulary
-from languageos_tools.writing.approve_writing_errors import main as approve_writing_errors
-from languageos_tools.anki.card_candidates import main as generate_anki_candidates
 from languageos_tools.anki.approve_candidates import main as approve_anki_candidates
-from languageos_tools.obsidian.sentence_bank import main as sync_sentence_bank_status
+from languageos_tools.anki.card_candidates import main as generate_anki_candidates
 from languageos_tools.diagnostics.check_system import main as check_system
+from languageos_tools.obsidian.sentence_bank import main as sync_sentence_bank_status
+from languageos_tools.vocabulary.approve_vocabulary import main as approve_vocabulary
+from languageos_tools.writing.approve_writing_errors import (
+    main as approve_writing_errors,
+)
 
 
 def main() -> None:

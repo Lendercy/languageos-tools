@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence
 
 from nicegui import ui
 
@@ -277,10 +277,14 @@ class LanguageOSControlCenter:
                 "text-sm text-slate-500"
             )
 
-            self.output_area = ui.textarea(
-                label="Output",
-                value="Run an action to see logs here.",
-            ).classes("w-full font-mono").props("readonly autogrow")
+            self.output_area = (
+                ui.textarea(
+                    label="Output",
+                    value="Run an action to see logs here.",
+                )
+                .classes("w-full font-mono")
+                .props("readonly autogrow")
+            )
 
     def _daily_healthcheck_spec(self, *, skip_build: bool = False) -> CommandSpec:
         args = [
@@ -453,7 +457,9 @@ class LanguageOSControlCenter:
         self._set_output(result.to_display_text())
 
         if self.last_command_label is not None:
-            self.last_command_label.text = f"Last command: {result.name} [{result.status}]"
+            self.last_command_label.text = (
+                f"Last command: {result.name} [{result.status}]"
+            )
 
         if result.name in {"Daily Healthcheck", "Fast Daily Healthcheck"}:
             self._set_status("PASS" if result.passed else "FAIL")

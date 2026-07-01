@@ -6,7 +6,6 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-
 CONFIG_PATH = Path("configs/languageos.config.json")
 
 
@@ -214,9 +213,7 @@ def backup_file(note_path: Path, backup_root: Path) -> Path:
 
 def find_markdown_notes(vault_root: Path) -> list[Path]:
     return sorted(
-        path
-        for path in vault_root.rglob("*.md")
-        if ".obsidian" not in path.parts
+        path for path in vault_root.rglob("*.md") if ".obsidian" not in path.parts
     )
 
 

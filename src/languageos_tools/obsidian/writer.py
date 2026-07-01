@@ -77,7 +77,9 @@ class ObsidianNoteWriter:
             return WriteReport(
                 result=OperationResult(
                     status="would_update" if exists else "would_create",
-                    message="Dry-run: note would be updated." if exists else "Dry-run: note would be created.",
+                    message="Dry-run: note would be updated."
+                    if exists
+                    else "Dry-run: note would be created.",
                     path=target_path,
                     changed=True,
                 )
@@ -96,7 +98,9 @@ class ObsidianNoteWriter:
         return WriteReport(
             result=OperationResult(
                 status="updated" if exists else "created",
-                message="Note updated successfully." if exists else "Note created successfully.",
+                message="Note updated successfully."
+                if exists
+                else "Note created successfully.",
                 path=target_path,
                 changed=True,
             ),

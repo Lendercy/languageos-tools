@@ -9,7 +9,6 @@ from urllib.parse import urlparse
 import requests
 from requests import RequestException
 
-
 CONFIG_PATH = Path("configs/languageos.config.json")
 
 
@@ -68,7 +67,9 @@ def check_ffmpeg() -> bool:
                 check=False,
             )
 
-            first_line = result.stdout.splitlines()[0] if result.stdout else "No version output"
+            first_line = (
+                result.stdout.splitlines()[0] if result.stdout else "No version output"
+            )
             print(f"[OK] ffmpeg version: {first_line}")
 
         except Exception as exc:
@@ -120,7 +121,9 @@ def check_anki_connect(url: str) -> bool:
     except RequestException as exc:
         print(f"[MISSING] AnkiConnect not reachable at {url}")
         print(f"          {exc}")
-        print("Hint: Open Anki, make sure AnkiConnect is enabled, then run diagnostics again.")
+        print(
+            "Hint: Open Anki, make sure AnkiConnect is enabled, then run diagnostics again."
+        )
         return False
 
     except ValueError as exc:

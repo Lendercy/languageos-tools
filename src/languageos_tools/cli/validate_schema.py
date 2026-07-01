@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
 from languageos_tools.validation.schema_validator import main as schema_validation_main
 

@@ -5,10 +5,11 @@ import dataclasses
 import json
 import logging
 from collections import Counter
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 from languageos_tools.core.key_policy import KeyPolicyRegistry
 from languageos_tools.core.normalization import (
@@ -21,7 +22,6 @@ from languageos_tools.core.note_type_registry import (
     NoteTypeRegistry,
     NoteTypeRegistryError,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -151,7 +151,7 @@ class SchemaValidationService:
         *,
         note_type_registry_path: Path,
         key_policy_registry_path: Path,
-    ) -> "SchemaValidationService":
+    ) -> SchemaValidationService:
         return cls(
             note_type_registry=NoteTypeRegistry.load(note_type_registry_path),
             key_policy_registry=KeyPolicyRegistry.load(key_policy_registry_path),
@@ -343,8 +343,7 @@ class SchemaValidationService:
     ) -> tuple[SchemaValidationIssue, ...]:
         language = self._first_str(document.frontmatter, self.LANGUAGE_FIELDS)
         language_required = any(
-            field in definition.required_frontmatter
-            for field in self.LANGUAGE_FIELDS
+            field in definition.required_frontmatter for field in self.LANGUAGE_FIELDS
         )
 
         if not language:
@@ -611,7 +610,9 @@ def print_report(report: SchemaValidationReport, *, limit: int) -> None:
             print(f"    actual  : {issue.actual}")
 
     if len(report.issues) > limit:
-        print(f"... truncated {len(report.issues) - limit} issues. Use --limit to show more.")
+        print(
+            f"... truncated {len(report.issues) - limit} issues. Use --limit to show more."
+        )
 
 
 def main(argv: Sequence[str] | None = None) -> int:

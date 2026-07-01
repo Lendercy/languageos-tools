@@ -7,11 +7,10 @@ import logging
 import subprocess
 import sys
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Sequence
-
 
 logger = logging.getLogger(__name__)
 

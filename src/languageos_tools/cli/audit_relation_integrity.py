@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
 from languageos_tools.relations.integrity_audit import main as relation_audit_main
 

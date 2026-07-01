@@ -16,7 +16,6 @@ from languageos_tools.migrations.relations_template_migration import (
 from languageos_tools.obsidian.vault import ObsidianVault
 from languageos_tools.obsidian.writer import ObsidianNoteWriter
 
-
 CONFIG_PATH = Path("configs/languageos.config.json")
 
 

@@ -5,14 +5,14 @@ import dataclasses
 import json
 import logging
 import sqlite3
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 from languageos_tools.core.normalization import ItemKey
 from languageos_tools.relations.integrity_audit import DatabaseRelationSource
-
 
 logger = logging.getLogger(__name__)
 
@@ -75,10 +75,7 @@ class LookupReport:
                 for match in self.matches
             ],
             "connected_relations": {
-                item_key: [
-                    dataclasses.asdict(relation)
-                    for relation in relations
-                ]
+                item_key: [dataclasses.asdict(relation) for relation in relations]
                 for item_key, relations in self.connected_relations.items()
             },
         }
@@ -162,9 +159,7 @@ class DatabaseLookupItemSource:
             if table_name in table_names
         ]
         fallback = [
-            table_name
-            for table_name in table_names
-            if table_name not in preferred
+            table_name for table_name in table_names if table_name not in preferred
         ]
 
         return tuple(preferred + fallback)
@@ -192,7 +187,9 @@ class DatabaseLookupItemSource:
         file_path_col = self._first_existing(columns, self.FILE_PATH_COLUMNS)
         text_col = self._first_existing(columns, self.TEXT_COLUMNS)
 
-        if explicit_key_col is None and not (type_col and language_col and normalized_col):
+        if explicit_key_col is None and not (
+            type_col and language_col and normalized_col
+        ):
             return ()
 
         select_parts = ["rowid AS __rowid__"]
@@ -327,9 +324,7 @@ class DatabaseLookupItemSource:
 
     def _richness_score(self, item: LookupItem) -> int:
         return sum(
-            1
-            for value in (item.title, item.file_path, item.text_preview)
-            if value
+            1 for value in (item.title, item.file_path, item.text_preview) if value
         )
 
 
@@ -467,8 +462,7 @@ class LookupService:
         item_key_set = set(item_keys)
         relations = self.relation_source.load_relations()
         by_item_key: dict[str, list[ConnectedRelation]] = {
-            item_key: []
-            for item_key in item_keys
+            item_key: [] for item_key in item_keys
         }
 
         for relation in relations:

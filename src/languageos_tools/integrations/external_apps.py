@@ -8,7 +8,6 @@ import urllib.request
 import webbrowser
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 from urllib.parse import quote
 
 
@@ -20,7 +19,9 @@ class ExternalAppConfig:
     anki_connect_url: str = "http://127.0.0.1:8765"
 
     @classmethod
-    def load(cls, *, vault_path: Path, config_path: Path | None = None) -> "ExternalAppConfig":
+    def load(
+        cls, *, vault_path: Path, config_path: Path | None = None
+    ) -> ExternalAppConfig:
         default = cls(
             vault_path=vault_path,
             obsidian_vault_name=vault_path.name,
@@ -48,9 +49,7 @@ class ExternalAppConfig:
                 obsidian.get("vault_name") or default.obsidian_vault_name
             ),
             anki_executable=str(anki.get("executable") or default.anki_executable),
-            anki_connect_url=str(
-                anki.get("connect_url") or default.anki_connect_url
-            ),
+            anki_connect_url=str(anki.get("connect_url") or default.anki_connect_url),
         )
 
 
@@ -130,8 +129,7 @@ class ExternalAppService:
             success=False,
             message="Could not open Anki.",
             details=(
-                "Set anki.executable in configs/local_apps.json, "
-                "or add Anki to PATH."
+                "Set anki.executable in configs/local_apps.json, or add Anki to PATH."
             ),
         )
 
@@ -218,7 +216,9 @@ class ExternalAppService:
 
         local_app_data = os.environ.get("LOCALAPPDATA", "")
         program_files = os.environ.get("ProgramFiles", r"C:\Program Files")
-        program_files_x86 = os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)")
+        program_files_x86 = os.environ.get(
+            "ProgramFiles(x86)", r"C:\Program Files (x86)"
+        )
 
         candidates.extend(
             [

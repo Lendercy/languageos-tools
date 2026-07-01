@@ -14,7 +14,6 @@ from languageos_tools.core.normalization import (
 )
 from languageos_tools.relations.integrity_audit import (
     DatabaseRelationSource,
-    RelationRecord,
 )
 
 
@@ -318,18 +317,24 @@ class StudyService:
         if back is None:
             back = "No Meaning/Explanation found yet."
 
-        examples = self._first_non_empty(
-            sections.get("examples"),
-            sections.get("example"),
-            sections.get("sentences"),
-        ) or ""
+        examples = (
+            self._first_non_empty(
+                sections.get("examples"),
+                sections.get("example"),
+                sections.get("sentences"),
+            )
+            or ""
+        )
 
-        notes = self._first_non_empty(
-            sections.get("notes"),
-            sections.get("usage"),
-            sections.get("grammar_notes"),
-            sections.get("pattern"),
-        ) or ""
+        notes = (
+            self._first_non_empty(
+                sections.get("notes"),
+                sections.get("usage"),
+                sections.get("grammar_notes"),
+                sections.get("pattern"),
+            )
+            or ""
+        )
 
         return StudyCard(
             card_id=item_key.render(),
@@ -387,8 +392,7 @@ class StudyService:
             relation_map[target_key].append(incoming)
 
         return {
-            item_key: tuple(relations)
-            for item_key, relations in relation_map.items()
+            item_key: tuple(relations) for item_key, relations in relation_map.items()
         }
 
     def _to_study_relation(

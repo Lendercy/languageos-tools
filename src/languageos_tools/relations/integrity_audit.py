@@ -6,17 +6,17 @@ import json
 import logging
 import sqlite3
 from collections import Counter, defaultdict
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any
 
 from languageos_tools.core.normalization import (
     ItemKey,
     ItemKeyExtractor,
     MarkdownFrontmatterReader,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -120,9 +120,7 @@ class RelationTypeRegistryReader:
         relation_types = self._extract_relation_types(data)
 
         cleaned = frozenset(
-            value.strip().casefold()
-            for value in relation_types
-            if value.strip()
+            value.strip().casefold() for value in relation_types if value.strip()
         )
 
         if not cleaned:
@@ -562,7 +560,9 @@ class RelationIntegrityAuditService:
         if self.relation_types_path is None:
             return frozenset()
 
-        return RelationTypeRegistryReader().load_relation_types(self.relation_types_path)
+        return RelationTypeRegistryReader().load_relation_types(
+            self.relation_types_path
+        )
 
     def _audit_relations(
         self,
@@ -573,7 +573,9 @@ class RelationIntegrityAuditService:
     ) -> list[RelationIntegrityIssue]:
         issues: list[RelationIntegrityIssue] = []
 
-        duplicate_map: dict[tuple[str, str, str], list[RelationRecord]] = defaultdict(list)
+        duplicate_map: dict[tuple[str, str, str], list[RelationRecord]] = defaultdict(
+            list
+        )
         for relation in relations:
             duplicate_map[
                 (
@@ -590,9 +592,7 @@ class RelationIntegrityAuditService:
                         relation=relation,
                         severity=RelationIntegritySeverity.ERROR,
                         code="unknown_relation_type",
-                        message=(
-                            f"Unknown relation type: {relation.relation_type!r}."
-                        ),
+                        message=(f"Unknown relation type: {relation.relation_type!r}."),
                     )
                 )
 
@@ -673,7 +673,9 @@ class RelationIntegrityAuditService:
     ) -> RelationIntegritySummary:
         severity_counter = Counter(issue.severity for issue in issues)
         issue_code_counter = Counter(issue.code for issue in issues)
-        relation_type_counter = Counter(relation.relation_type for relation in relations)
+        relation_type_counter = Counter(
+            relation.relation_type for relation in relations
+        )
 
         invalid_relation_rowids = {
             issue.db_rowid
@@ -683,9 +685,7 @@ class RelationIntegrityAuditService:
         }
 
         valid_relation_count = sum(
-            1
-            for relation in relations
-            if relation.rowid not in invalid_relation_rowids
+            1 for relation in relations if relation.rowid not in invalid_relation_rowids
         )
 
         return RelationIntegritySummary(
@@ -787,7 +787,9 @@ def print_report(report: RelationIntegrityReport, *, limit: int) -> None:
             print(f"    detail  : {issue.detail}")
 
     if len(report.issues) > limit:
-        print(f"... truncated {len(report.issues) - limit} issues. Use --limit to show more.")
+        print(
+            f"... truncated {len(report.issues) - limit} issues. Use --limit to show more."
+        )
 
 
 def main(argv: Sequence[str] | None = None) -> int:

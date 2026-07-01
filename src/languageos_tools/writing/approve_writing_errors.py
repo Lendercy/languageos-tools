@@ -6,7 +6,6 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 
-
 CONFIG_PATH = Path("configs/languageos.config.json")
 
 
@@ -153,7 +152,9 @@ def candidate_to_row(candidate: dict) -> list[str]:
     ]
 
 
-def find_language_section(lines: list[str], language: str) -> tuple[int | None, int | None]:
+def find_language_section(
+    lines: list[str], language: str
+) -> tuple[int | None, int | None]:
     """
     Find section boundaries for:
 
@@ -163,7 +164,9 @@ def find_language_section(lines: list[str], language: str) -> tuple[int | None, 
 
     ## German Errors
     """
-    target_heading = "## English Errors" if language == "english" else "## German Errors"
+    target_heading = (
+        "## English Errors" if language == "english" else "## German Errors"
+    )
 
     start_idx = None
 
@@ -185,7 +188,9 @@ def find_language_section(lines: list[str], language: str) -> tuple[int | None, 
     return start_idx, end_idx
 
 
-def find_table_insert_index(lines: list[str], section_start: int, section_end: int) -> int | None:
+def find_table_insert_index(
+    lines: list[str], section_start: int, section_end: int
+) -> int | None:
     """
     Find where to insert a new row in the writing error table.
 
@@ -235,7 +240,9 @@ def append_writing_error_row(
     section_start, section_end = find_language_section(lines, language)
 
     if section_start is None or section_end is None:
-        raise RuntimeError(f"Could not find writing error section for language: {language}")
+        raise RuntimeError(
+            f"Could not find writing error section for language: {language}"
+        )
 
     insert_idx = find_table_insert_index(
         lines=lines,
@@ -244,7 +251,9 @@ def append_writing_error_row(
     )
 
     if insert_idx is None:
-        raise RuntimeError(f"Could not find writing error table for language: {language}")
+        raise RuntimeError(
+            f"Could not find writing error table for language: {language}"
+        )
 
     new_row = build_markdown_row(candidate_to_row(candidate))
 
@@ -256,12 +265,16 @@ def append_writing_error_row(
     )
 
 
-def approve_writing_error_candidates(config: dict, payload: dict) -> tuple[int, int, int]:
+def approve_writing_error_candidates(
+    config: dict, payload: dict
+) -> tuple[int, int, int]:
     languageos_root = Path(config["languageos_root"])
     writing_error_log_path = Path(config["required_paths"]["writing_error_log"])
 
     if not writing_error_log_path.exists():
-        raise FileNotFoundError(f"Writing Error Log not found: {writing_error_log_path}")
+        raise FileNotFoundError(
+            f"Writing Error Log not found: {writing_error_log_path}"
+        )
 
     backup_path = create_backup(
         source_path=writing_error_log_path,

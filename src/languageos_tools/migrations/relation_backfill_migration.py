@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
 
 from languageos_tools.core.frontmatter import FrontmatterParser
 from languageos_tools.core.models import FrontmatterDocument
@@ -12,7 +12,6 @@ from languageos_tools.migrations.relations_template_migration import (
     RELATION_LABELS,
 )
 from languageos_tools.obsidian.note import VaultNote
-
 
 RELATION_BACKFILL_VERSION = "1.0"
 
@@ -66,7 +65,9 @@ class RelationBackfillMigration:
 
         return item_type in ITEM_RELATION_SECTIONS
 
-    def migrate_note(self, note: VaultNote, context: MigrationContext) -> VaultNote | None:
+    def migrate_note(
+        self, note: VaultNote, context: MigrationContext
+    ) -> VaultNote | None:
         parser = FrontmatterParser()
         document = note.parse(parser)
 
@@ -278,7 +279,9 @@ class RelationBackfillMigration:
             return True
 
         heading_key = heading.strip().lower().replace(" ", "_")
-        label_key = self._relation_label(relation_type).strip().lower().replace(" ", "_")
+        label_key = (
+            self._relation_label(relation_type).strip().lower().replace(" ", "_")
+        )
 
         return heading_key in {relation_type, label_key}
 
@@ -293,7 +296,9 @@ class RelationBackfillMigration:
 
         return match.group(1).strip().lower()
 
-    def _split_h3_blocks_with_spans(self, section_content: str) -> list[tuple[str, str, int, int]]:
+    def _split_h3_blocks_with_spans(
+        self, section_content: str
+    ) -> list[tuple[str, str, int, int]]:
         pattern = r"(?ims)^###\s+(.+?)\s*$\n(.*?)(?=^###\s+|\Z)"
         blocks: list[tuple[str, str, int, int]] = []
 

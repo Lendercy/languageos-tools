@@ -6,7 +6,6 @@ from typing import Any
 
 from languageos_tools.core.models import FrontmatterDocument
 
-
 _FRONTMATTER_DELIMITER = "---"
 
 
@@ -26,7 +25,9 @@ class FrontmatterParser:
         parts = text.split(_FRONTMATTER_DELIMITER, 2)
 
         if len(parts) < 3:
-            raise FrontmatterError("Invalid frontmatter block: missing closing delimiter.")
+            raise FrontmatterError(
+                "Invalid frontmatter block: missing closing delimiter."
+            )
 
         raw_frontmatter = parts[1].strip("\n")
         body = parts[2].lstrip("\n")

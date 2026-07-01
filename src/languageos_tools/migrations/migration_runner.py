@@ -27,11 +27,11 @@ class MigrationPlan:
 class NoteMigration(Protocol):
     name: str
 
-    def should_process(self, note: VaultNote) -> bool:
-        ...
+    def should_process(self, note: VaultNote) -> bool: ...
 
-    def migrate_note(self, note: VaultNote, context: MigrationContext) -> VaultNote | None:
-        ...
+    def migrate_note(
+        self, note: VaultNote, context: MigrationContext
+    ) -> VaultNote | None: ...
 
 
 class MigrationRunner:

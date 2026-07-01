@@ -9,7 +9,6 @@ from languageos_tools.datastore.relation_repository import (
     RelationRepositoryConfig,
 )
 
-
 CONFIG_PATH = Path("configs/languageos.config.json")
 
 

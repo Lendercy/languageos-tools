@@ -6,7 +6,6 @@ import re
 import sqlite3
 from pathlib import Path
 
-
 CONFIG_PATH = Path("configs/languageos.config.json")
 
 

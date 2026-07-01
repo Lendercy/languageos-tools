@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence
 
 from nicegui import ui
 
@@ -484,7 +484,9 @@ class LanguageOSLearningApp:
 
         if self.progress_label is not None:
             if self.cards:
-                self.progress_label.text = f"{self.current_index + 1} / {len(self.cards)}"
+                self.progress_label.text = (
+                    f"{self.current_index + 1} / {len(self.cards)}"
+                )
             else:
                 self.progress_label.text = "0 / 0"
 
