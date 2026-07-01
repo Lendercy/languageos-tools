@@ -2,147 +2,94 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from languageos_tools.obsidian.note import VaultNote
-from languageos_tools.relations.parser import (
-    RelationMarkdownParser,
-    build_relation_parse_context,
+from languageos_tools.core.enums import RelationType
+from languageos_tools.core.models import LanguageItemKey
+from languageos_tools.datastore.relation_repository import (
+    RelationRepository,
+    RelationRepositoryConfig,
 )
-from languageos_tools.relations.service import RelationService
-from languageos_tools.relations.taxonomy import RelationTaxonomy
+from languageos_tools.relations.parser import ParsedRelation
 
 
-def make_note(relative_path: str, text: str) -> VaultNote:
-    vault_root = Path("D:/fake/vault")
+def test_relation_repository_rebuild_and_query(tmp_path: Path) -> None:
+    db_path = tmp_path / "languageos.db"
 
-    return VaultNote(
-        vault_root=vault_root,
-        absolute_path=vault_root / f"{relative_path}.md",
-        text=text,
+    repository = RelationRepository(
+        RelationRepositoryConfig(
+            db_path=db_path,
+        )
     )
 
-
-def make_parser() -> RelationMarkdownParser:
-    taxonomy = RelationTaxonomy.load(
-        Path("src/languageos_tools/relations/relation_types.json")
+    source_key = LanguageItemKey(
+        item_type="sentence",
+        language="german",
+        normalized="trotzdem lerne ich deutsch",
     )
-    service = RelationService(taxonomy)
-    return RelationMarkdownParser(service)
-
-
-def test_relation_parser_parses_generic_relations_section() -> None:
-    sentence_note = make_note(
-        "Sentences/German/Trotzdem lerne ich Deutsch",
-        """---
-type: sentence
-language: german
-sentence: Trotzdem lerne ich Deutsch.
-normalized: trotzdem lerne ich deutsch
----
-
-## Relations
-
-### Contains Vocabulary
-
-relation_type: `contains_vocabulary`
-
-- [[Vocabulary/German/trotzdem|trotzdem]]
-""",
+    target_key = LanguageItemKey(
+        item_type="vocabulary",
+        language="german",
+        normalized="trotzdem",
     )
 
-    vocab_note = make_note(
-        "Vocabulary/German/trotzdem",
-        """---
-type: vocabulary
-language: german
-term: trotzdem
-normalized: trotzdem
----
-
-## Meaning
-
-nevertheless
-""",
+    relation = ParsedRelation(
+        source_key=source_key,
+        target_key=target_key,
+        relation_type=RelationType.CONTAINS_VOCABULARY,
+        confidence=1.0,
+        evidence="test",
+        source_path="Sentences/German/Trotzdem lerne ich Deutsch",
+        target_path="Vocabulary/German/trotzdem",
     )
 
-    notes = [sentence_note, vocab_note]
-    context = build_relation_parse_context(notes)
+    inserted = repository.rebuild([relation])
 
-    relations = make_parser().parse_note(sentence_note, context)
+    assert inserted == 1
+    assert repository.count() == 1
 
-    assert len(relations) == 1
-    assert relations[0].relation_type.value == "contains_vocabulary"
-    assert relations[0].source_key.as_string() == (
-        "sentence|german|trotzdem lerne ich deutsch"
-    )
-    assert relations[0].target_key.as_string() == "vocabulary|german|trotzdem"
+    matches = repository.search_item_keys("trotzdem")
+    assert len(matches) == 2
+
+    neighbors = repository.get_neighbors(source_key.as_string())
+    assert len(neighbors["outgoing"]) == 1
+    assert len(neighbors["incoming"]) == 0
+
+    outgoing = neighbors["outgoing"][0]
+    assert outgoing["relation_type"] == "contains_vocabulary"
+    assert outgoing["target_key"] == target_key.as_string()
 
 
-def test_relation_parser_ignores_todo_links() -> None:
-    sentence_note = make_note(
-        "Sentences/German/TODO Example",
-        """---
-type: sentence
-language: german
-sentence: TODO Example.
-normalized: todo example
----
+def test_relation_repository_rebuild_is_replace_all(tmp_path: Path) -> None:
+    db_path = tmp_path / "languageos.db"
 
-## Relations
-
-### Contains Vocabulary
-
-relation_type: `contains_vocabulary`
-
-- TODO
-""",
+    repository = RelationRepository(
+        RelationRepositoryConfig(
+            db_path=db_path,
+        )
     )
 
-    context = build_relation_parse_context([sentence_note])
-
-    relations = make_parser().parse_note(sentence_note, context)
-
-    assert relations == []
-
-
-def test_relation_parser_parses_legacy_related_grammar_section() -> None:
-    vocab_note = make_note(
-        "Vocabulary/German/trotzdem",
-        """---
-type: vocabulary
-language: german
-term: trotzdem
-normalized: trotzdem
----
-
-## Related Grammar
-
-- [[Grammar/German/Contrast connectors|Contrast connectors]]
-""",
+    source_key = LanguageItemKey(
+        item_type="sentence",
+        language="german",
+        normalized="a",
+    )
+    target_key = LanguageItemKey(
+        item_type="vocabulary",
+        language="german",
+        normalized="b",
     )
 
-    grammar_note = make_note(
-        "Grammar/German/Contrast connectors",
-        """---
-type: grammar
-language: german
-title: Contrast connectors
-normalized: contrast connectors
----
-
-## Pattern
-
-aber, trotzdem, obwohl
-""",
+    relation = ParsedRelation(
+        source_key=source_key,
+        target_key=target_key,
+        relation_type=RelationType.CONTAINS_VOCABULARY,
+        confidence=1.0,
+        evidence="test",
+        source_path="Sentences/German/A",
+        target_path="Vocabulary/German/B",
     )
 
-    notes = [vocab_note, grammar_note]
-    context = build_relation_parse_context(notes)
+    repository.rebuild([relation])
+    assert repository.count() == 1
 
-    relations = make_parser().parse_note(vocab_note, context)
-
-    assert len(relations) == 1
-    assert relations[0].relation_type.value == "uses_grammar"
-    assert relations[0].source_key.as_string() == "vocabulary|german|trotzdem"
-    assert relations[0].target_key.as_string() == (
-        "grammar|german|contrast connectors"
-    )
+    repository.rebuild([])
+    assert repository.count() == 0
