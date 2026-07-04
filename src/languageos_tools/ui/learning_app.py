@@ -53,7 +53,7 @@ class LanguageOSLearningApp:
 
     This version uses a fixed app-shell layout:
     - top header
-    - fixed left sidebar navigation
+    - collapsible fixed left sidebar navigation
     - one active content window on the right
     """
 
@@ -112,6 +112,7 @@ class LanguageOSLearningApp:
         )
 
         self.active_page = "dashboard"
+        self.sidebar_collapsed = False
 
         self.sidebar_container: ui.column | None = None
         self.main_container: ui.column | None = None
@@ -203,6 +204,42 @@ class LanguageOSLearningApp:
                     color: white;
                     border-right: 1px solid #1f2937;
                     padding: 16px 12px;
+                    transition: width 180ms ease, min-width 180ms ease, padding 180ms ease;
+                }
+
+                .los-sidebar-collapsed {
+                    width: 76px;
+                    min-width: 76px;
+                    padding: 16px 8px;
+                }
+
+                .los-sidebar-collapsed .los-sidebar-text {
+                    display: none;
+                }
+
+                .los-sidebar-collapsed .los-sidebar-section {
+                    display: none;
+                }
+
+                .los-sidebar-collapsed .los-nav-button {
+                    justify-content: center;
+                    padding-left: 0;
+                    padding-right: 0;
+                }
+
+                .los-sidebar-collapsed .q-btn__content {
+                    justify-content: center;
+                }
+
+                .los-collapse-button {
+                    width: 100%;
+                    justify-content: flex-end;
+                    margin-bottom: 12px;
+                    border-radius: 10px;
+                }
+
+                .los-sidebar-collapsed .los-collapse-button {
+                    justify-content: center;
                 }
 
                 .los-main {
@@ -241,7 +278,7 @@ class LanguageOSLearningApp:
             self._build_header()
 
             with ui.element("div").classes("los-body"):
-                self.sidebar_container = ui.column().classes("los-sidebar gap-2")
+                self.sidebar_container = ui.column().classes(self._sidebar_classes())
                 self._render_sidebar()
 
                 self.main_container = ui.column().classes("los-main")
@@ -259,6 +296,21 @@ class LanguageOSLearningApp:
                 "text-xs bg-purple-100 text-purple-800 px-3 py-1 rounded-full"
             )
 
+    def toggle_sidebar(self) -> None:
+        self.sidebar_collapsed = not self.sidebar_collapsed
+
+        if self.sidebar_container is not None:
+            self.sidebar_container.classes(replace=self._sidebar_classes())
+
+        self._render_sidebar()
+
+    def _sidebar_classes(self) -> str:
+        base_classes = "los-sidebar gap-2"
+        if self.sidebar_collapsed:
+            return f"{base_classes} los-sidebar-collapsed"
+
+        return base_classes
+
     def _render_sidebar(self) -> None:
         if self.sidebar_container is None:
             return
@@ -266,9 +318,19 @@ class LanguageOSLearningApp:
         self.sidebar_container.clear()
 
         with self.sidebar_container:
-            ui.label("Navigation").classes(
-                "text-xs uppercase tracking-wide text-slate-400 px-2 mt-1 mb-2"
-            )
+            collapse_icon = "chevron_right" if self.sidebar_collapsed else "chevron_left"
+            collapse_label = "" if self.sidebar_collapsed else "Collapse"
+
+            ui.button(
+                collapse_label,
+                icon=collapse_icon,
+                on_click=self.toggle_sidebar,
+            ).props("flat no-caps").classes("los-collapse-button text-slate-300")
+
+            if not self.sidebar_collapsed:
+                ui.label("Navigation").classes(
+                    "los-sidebar-section text-xs uppercase tracking-wide text-slate-400 px-2 mt-1 mb-2"
+                )
 
             for page in self.PAGES:
                 is_active = self.active_page == page.key
@@ -281,29 +343,39 @@ class LanguageOSLearningApp:
                     )
                 )
 
-                ui.button(
-                    page.title,
-                    icon=page.icon,
-                    on_click=lambda page_key=page.key: self.show_page(page_key),
-                ).props("flat no-caps align=left").classes(classes)
+                label = "" if self.sidebar_collapsed else page.title
 
-            ui.separator().classes("my-4 bg-slate-700")
+                button = (
+                    ui.button(
+                        label,
+                        icon=page.icon,
+                        on_click=lambda page_key=page.key: self.show_page(page_key),
+                    )
+                    .props("flat no-caps align=left")
+                    .classes(classes)
+                )
+                button.tooltip(page.title)
 
-            ui.label("System Rules").classes(
-                "text-xs uppercase tracking-wide text-slate-400 px-2 mb-1"
-            )
-            ui.label(
-                "Local-first. No auto-delete, auto-merge, or auto-Anki export."
-            ).classes("text-xs text-slate-400 px-2 leading-relaxed")
+            if not self.sidebar_collapsed:
+                ui.separator().classes("my-4 bg-slate-700")
 
-            ui.separator().classes("my-4 bg-slate-700")
+                ui.label("System Rules").classes(
+                    "los-sidebar-section text-xs uppercase tracking-wide text-slate-400 px-2 mb-1"
+                )
+                ui.label(
+                    "Local-first. No auto-delete, auto-merge, or auto-Anki export."
+                ).classes(
+                    "los-sidebar-section text-xs text-slate-400 px-2 leading-relaxed"
+                )
 
-            ui.label("Current Branch").classes(
-                "text-xs uppercase tracking-wide text-slate-400 px-2 mb-1"
-            )
-            ui.label("learner-workspace-ui-v4").classes(
-                "text-xs font-mono text-slate-300 px-2"
-            )
+                ui.separator().classes("my-4 bg-slate-700")
+
+                ui.label("Current Branch").classes(
+                    "los-sidebar-section text-xs uppercase tracking-wide text-slate-400 px-2 mb-1"
+                )
+                ui.label("learner-workspace-ui-v4").classes(
+                    "los-sidebar-section text-xs font-mono text-slate-300 px-2"
+                )
 
     def show_page(self, page_key: str) -> None:
         self.active_page = page_key
