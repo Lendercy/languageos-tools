@@ -16,6 +16,11 @@ from languageos_tools.study.study_service import (
     StudyFilter,
     StudyService,
 )
+from languageos_tools.ui.services.maintenance_service import (
+    MaintenanceCommandResult,
+    MaintenanceService,
+    WorkspaceHealthReport,
+)
 from languageos_tools.ui.services.workspace_service import (
     WorkspaceItemView,
     WorkspaceLookupView,
@@ -29,6 +34,7 @@ class LearningUIConfig:
     vault_path: Path
     db_path: Path
     local_apps_config_path: Path
+    project_root: Path
     host: str = "127.0.0.1"
     port: int = 8082
 
@@ -37,8 +43,9 @@ class LanguageOSLearningApp:
     """
     Learner-facing UI for LanguageOS.
 
-    This app has two learner-focused modes:
+    This app has three learner-focused areas:
     - Workspace mode: search, inspect items, and browse relations.
+    - Maintenance mode: healthcheck, DB rebuild, relation index rebuild.
     - Review mode: study vocabulary, sentence, and grammar cards.
     """
 
@@ -50,6 +57,10 @@ class LanguageOSLearningApp:
             db_path=config.db_path,
         )
         self.workspace_service = WorkspaceService(
+            db_path=config.db_path,
+        )
+        self.maintenance_service = MaintenanceService(
+            project_root=config.project_root,
             db_path=config.db_path,
         )
 
@@ -84,6 +95,10 @@ class LanguageOSLearningApp:
         self.workspace_inspector_container: ui.column | None = None
         self.workspace_last_view: WorkspaceLookupView | None = None
 
+        self.health_container: ui.column | None = None
+        self.maintenance_output_container: ui.column | None = None
+        self.last_health_report: WorkspaceHealthReport | None = None
+
     def build(self) -> None:
         ui.colors(
             primary="#7c3aed",
@@ -110,10 +125,12 @@ class LanguageOSLearningApp:
         with ui.column().classes("w-full max-w-7xl mx-auto p-4 gap-4"):
             self._build_summary_cards()
             self._build_workspace_area()
+            self._build_maintenance_area()
             self._build_filters()
             self._build_study_area()
 
         self.reload_deck()
+        self.run_healthcheck()
 
     def _build_summary_cards(self) -> None:
         with ui.grid(columns=3).classes("w-full gap-4"):
@@ -183,6 +200,50 @@ class LanguageOSLearningApp:
                 )
 
         self.search_workspace()
+
+    def _build_maintenance_area(self) -> None:
+        with ui.card().classes("w-full shadow-sm"):
+            with ui.row().classes("w-full justify-between items-center"):
+                with ui.column().classes("gap-0"):
+                    ui.label("Maintenance + Health").classes("text-lg font-semibold")
+                    ui.label(
+                        "Check local LanguageOS state and run safe rebuild actions."
+                    ).classes("text-sm text-slate-500")
+
+            with ui.row().classes("w-full gap-2 mt-3"):
+                ui.button(
+                    "Healthcheck",
+                    icon="health_and_safety",
+                    on_click=self.run_healthcheck,
+                ).props("unelevated")
+
+                ui.button(
+                    "Dry-run Build DB",
+                    icon="visibility",
+                    on_click=lambda: self.run_build_database(dry_run=True),
+                ).props("outline")
+
+                ui.button(
+                    "Build DB",
+                    icon="storage",
+                    on_click=lambda: self.run_build_database(dry_run=False),
+                ).props("outline color=warning")
+
+                ui.button(
+                    "Dry-run Relations",
+                    icon="visibility",
+                    on_click=lambda: self.run_rebuild_relation_index(dry_run=True),
+                ).props("outline")
+
+                ui.button(
+                    "Rebuild Relations",
+                    icon="hub",
+                    on_click=lambda: self.run_rebuild_relation_index(dry_run=False),
+                ).props("outline color=warning")
+
+            with ui.grid(columns=2).classes("w-full gap-4 mt-4"):
+                self.health_container = ui.column().classes("w-full gap-2")
+                self.maintenance_output_container = ui.column().classes("w-full gap-2")
 
     def _build_filters(self) -> None:
         with ui.card().classes("w-full shadow-sm"):
@@ -285,6 +346,42 @@ class LanguageOSLearningApp:
 
         self._render_workspace()
 
+    def run_healthcheck(self) -> None:
+        try:
+            self.last_health_report = self.maintenance_service.healthcheck()
+        except Exception as exc:
+            ui.notify(f"Healthcheck failed: {exc}", type="negative")
+            return
+
+        self._render_health_report(self.last_health_report)
+
+    def run_build_database(self, *, dry_run: bool) -> None:
+        result = self.maintenance_service.build_database(dry_run=dry_run)
+        self._render_maintenance_command_result(result)
+        ui.notify(
+            result.message,
+            type="positive" if result.success else "negative",
+            timeout=5000,
+        )
+
+        if result.success and not dry_run:
+            self.run_healthcheck()
+            self.reload_deck()
+            self.search_workspace()
+
+    def run_rebuild_relation_index(self, *, dry_run: bool) -> None:
+        result = self.maintenance_service.rebuild_relation_index(dry_run=dry_run)
+        self._render_maintenance_command_result(result)
+        ui.notify(
+            result.message,
+            type="positive" if result.success else "negative",
+            timeout=5000,
+        )
+
+        if result.success and not dry_run:
+            self.run_healthcheck()
+            self.search_workspace()
+
     def copy_workspace_note_path(self) -> None:
         item = self._selected_workspace_item()
         if item is None or not item.file_path:
@@ -369,7 +466,10 @@ class LanguageOSLearningApp:
         card = ui.card().classes(
             f"w-full p-3 cursor-pointer shadow-none border {border_class}"
         )
-        card.on("click", lambda _, item_key=item.item_key: self.select_workspace_item(item_key))
+        card.on(
+            "click",
+            lambda _, item_key=item.item_key: self.select_workspace_item(item_key),
+        )
 
         with card:
             with ui.row().classes("w-full justify-between items-center"):
@@ -497,6 +597,109 @@ class LanguageOSLearningApp:
                 ui.label(f"{relation.confidence:.2f}").classes(
                     "text-xs font-mono text-slate-400 ml-auto"
                 )
+
+    def _render_health_report(self, report: WorkspaceHealthReport) -> None:
+        if self.health_container is None:
+            return
+
+        self.health_container.clear()
+
+        with self.health_container:
+            status_icon = "check_circle" if report.ok else "warning"
+            status_class = "text-green-600" if report.ok else "text-amber-600"
+            status_text = "Healthy" if report.ok else "Needs attention"
+
+            with ui.card().classes("w-full p-4 bg-slate-50 shadow-none"):
+                with ui.row().classes("w-full items-center gap-2"):
+                    ui.icon(status_icon).classes(f"text-2xl {status_class}")
+                    ui.label(status_text).classes(
+                        f"text-lg font-bold {status_class}"
+                    )
+
+                ui.label(f"Checked at: {report.checked_at:%Y-%m-%d %H:%M:%S}").classes(
+                    "text-xs text-slate-500"
+                )
+
+                ui.separator()
+
+                with ui.grid(columns=2).classes("w-full gap-2"):
+                    self._render_health_metric(
+                        label="DB Exists",
+                        value="yes" if report.db_exists else "no",
+                    )
+                    self._render_health_metric(
+                        label="DB Size",
+                        value=f"{report.db_size_bytes:,} bytes",
+                    )
+                    self._render_health_metric(
+                        label="Language Items",
+                        value=self._optional_int(report.language_item_count),
+                    )
+                    self._render_health_metric(
+                        label="Relations",
+                        value=self._optional_int(report.relation_count),
+                    )
+
+                ui.separator()
+                ui.label("Checks").classes("text-sm font-semibold text-slate-700")
+
+                for check in report.checks:
+                    icon = "check_circle" if check.ok else "error"
+                    color = "text-green-600" if check.ok else "text-red-600"
+
+                    with ui.row().classes(
+                        "w-full items-start gap-2 bg-white border border-slate-200 rounded p-2"
+                    ):
+                        ui.icon(icon).classes(color)
+                        with ui.column().classes("gap-0"):
+                            ui.label(check.name).classes(
+                                "text-xs font-bold text-slate-600"
+                            )
+                            ui.label(check.message).classes("text-xs text-slate-500")
+
+    def _render_health_metric(self, *, label: str, value: str) -> None:
+        with ui.card().classes("p-3 shadow-none bg-white border border-slate-200"):
+            ui.label(label).classes("text-xs text-slate-500")
+            ui.label(value).classes("text-lg font-bold text-slate-800")
+
+    def _render_maintenance_command_result(
+        self,
+        result: MaintenanceCommandResult,
+    ) -> None:
+        if self.maintenance_output_container is None:
+            return
+
+        self.maintenance_output_container.clear()
+
+        with self.maintenance_output_container:
+            status_icon = "check_circle" if result.success else "error"
+            status_class = "text-green-600" if result.success else "text-red-600"
+
+            with ui.card().classes("w-full p-4 bg-slate-50 shadow-none"):
+                with ui.row().classes("w-full items-center gap-2"):
+                    ui.icon(status_icon).classes(f"text-2xl {status_class}")
+                    ui.label(result.message).classes(
+                        f"text-lg font-bold {status_class}"
+                    )
+
+                ui.label(f"Command: {' '.join(result.command)}").classes(
+                    "text-xs font-mono text-slate-500 break-all"
+                )
+
+                if result.returncode is not None:
+                    ui.label(f"Return code: {result.returncode}").classes(
+                        "text-xs font-mono text-slate-500"
+                    )
+
+                if result.stdout:
+                    ui.separator()
+                    ui.label("STDOUT").classes("text-xs font-bold text-slate-600")
+                    ui.code(result.stdout).classes("w-full text-xs")
+
+                if result.stderr:
+                    ui.separator()
+                    ui.label("STDERR").classes("text-xs font-bold text-red-600")
+                    ui.code(result.stderr).classes("w-full text-xs")
 
     def reload_deck(self) -> None:
         language = self._select_value(self.language_select, default="german")
@@ -861,6 +1064,12 @@ class LanguageOSLearningApp:
     def _relation_label(self, relation_type: str) -> str:
         return relation_type.replace("_", " ").title()
 
+    def _optional_int(self, value: int | None) -> str:
+        if value is None:
+            return "unknown"
+
+        return f"{value:,}"
+
 
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -883,6 +1092,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
         type=Path,
         default=Path("configs/local_apps.json"),
         help="Local external app config path.",
+    )
+    parser.add_argument(
+        "--project-root",
+        type=Path,
+        default=Path.cwd(),
+        help="Project root path.",
     )
     parser.add_argument(
         "--host",
@@ -917,6 +1132,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             vault_path=args.vault,
             db_path=args.db,
             local_apps_config_path=args.local_apps_config,
+            project_root=args.project_root.resolve(),
             host=args.host,
             port=args.port,
         )
