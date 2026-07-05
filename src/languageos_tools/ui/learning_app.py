@@ -51,24 +51,20 @@ class LanguageOSLearningApp:
     """
     Learner-facing UI for LanguageOS.
 
-    This version uses a fixed app-shell layout:
-    - top header
-    - collapsible fixed left sidebar navigation
-    - one active content window on the right
+    This version uses a learner-first fixed app-shell layout:
+    - Today as the default learner home
+    - Review for study sessions
+    - Workspace for search and item inspection
+    - Library as a future browsing surface
+    - System for maintenance and local configuration
     """
 
     PAGES: tuple[NavigationPage, ...] = (
         NavigationPage(
-            key="dashboard",
-            title="Dashboard",
-            subtitle="Overview of your local learning system.",
-            icon="dashboard",
-        ),
-        NavigationPage(
-            key="workspace",
-            title="Workspace",
-            subtitle="Search, inspect, and connect learning items.",
-            icon="travel_explore",
+            key="today",
+            title="Today",
+            subtitle="Start your daily English and German learning session.",
+            icon="home",
         ),
         NavigationPage(
             key="review",
@@ -77,15 +73,21 @@ class LanguageOSLearningApp:
             icon="school",
         ),
         NavigationPage(
-            key="maintenance",
-            title="Maintenance",
-            subtitle="Healthcheck and safe rebuild actions.",
-            icon="construction",
+            key="workspace",
+            title="Workspace",
+            subtitle="Search, inspect, and connect learning items.",
+            icon="travel_explore",
         ),
         NavigationPage(
-            key="settings",
-            title="Settings",
-            subtitle="Local paths and runtime configuration.",
+            key="library",
+            title="Library",
+            subtitle="Browse your language knowledge base.",
+            icon="inventory_2",
+        ),
+        NavigationPage(
+            key="system",
+            title="System",
+            subtitle="Healthcheck, rebuild actions, and local configuration.",
             icon="settings",
         ),
     )
@@ -111,7 +113,7 @@ class LanguageOSLearningApp:
             )
         )
 
-        self.active_page = "dashboard"
+        self.active_page = "today"
         self.sidebar_collapsed = False
 
         self.sidebar_container: ui.column | None = None
@@ -168,13 +170,19 @@ class LanguageOSLearningApp:
         ui.add_head_html(
             """
             <style>
-                body {
+                html,
+                body,
+                #app {
+                    height: 100%;
+                    margin: 0;
+                    overflow: hidden;
                     background: #f8fafc;
                 }
 
                 .los-app-shell {
-                    min-height: 100vh;
+                    height: 100vh;
                     width: 100%;
+                    overflow: hidden;
                     background: #f8fafc;
                 }
 
@@ -193,13 +201,16 @@ class LanguageOSLearningApp:
                 .los-body {
                     display: flex;
                     width: 100%;
-                    min-height: calc(100vh - 56px);
+                    height: calc(100vh - 56px);
+                    overflow: hidden;
                 }
 
                 .los-sidebar {
                     width: 268px;
                     min-width: 268px;
-                    min-height: calc(100vh - 56px);
+                    height: calc(100vh - 56px);
+                    overflow-y: auto;
+                    overflow-x: hidden;
                     background: #111827;
                     color: white;
                     border-right: 1px solid #1f2937;
@@ -245,7 +256,8 @@ class LanguageOSLearningApp:
                 .los-main {
                     flex: 1;
                     min-width: 0;
-                    min-height: calc(100vh - 56px);
+                    height: calc(100vh - 56px);
+                    overflow-y: auto;
                     padding: 24px;
                     background: #f8fafc;
                 }
@@ -254,6 +266,7 @@ class LanguageOSLearningApp:
                     width: 100%;
                     max-width: 1280px;
                     margin: 0 auto;
+                    padding-bottom: 48px;
                 }
 
                 .los-nav-button {
@@ -268,6 +281,19 @@ class LanguageOSLearningApp:
                     border: 1px solid #e5e7eb;
                     border-radius: 14px;
                     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+                }
+
+                .los-soft-card {
+                    background: #f8fafc;
+                    border: 1px solid #e5e7eb;
+                    border-radius: 14px;
+                    box-shadow: none;
+                }
+
+                .los-muted-metadata {
+                    color: #94a3b8;
+                    font-size: 11px;
+                    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
                 }
             </style>
             """
@@ -328,7 +354,7 @@ class LanguageOSLearningApp:
             ).props("flat no-caps").classes("los-collapse-button text-slate-300")
 
             if not self.sidebar_collapsed:
-                ui.label("Navigation").classes(
+                ui.label("Learning").classes(
                     "los-sidebar-section text-xs uppercase tracking-wide text-slate-400 px-2 mt-1 mb-2"
                 )
 
@@ -363,7 +389,7 @@ class LanguageOSLearningApp:
                     "los-sidebar-section text-xs uppercase tracking-wide text-slate-400 px-2 mb-1"
                 )
                 ui.label(
-                    "Local-first. No auto-delete, auto-merge, or auto-Anki export."
+                    "Local-first. Obsidian remains source of truth. AI suggests; you approve."
                 ).classes(
                     "los-sidebar-section text-xs text-slate-400 px-2 leading-relaxed"
                 )
@@ -373,7 +399,7 @@ class LanguageOSLearningApp:
                 ui.label("Current Branch").classes(
                     "los-sidebar-section text-xs uppercase tracking-wide text-slate-400 px-2 mb-1"
                 )
-                ui.label("learner-workspace-ui-v4").classes(
+                ui.label("learner-workspace-ui-v4-app-shell").classes(
                     "los-sidebar-section text-xs font-mono text-slate-300 px-2"
                 )
 
@@ -398,72 +424,114 @@ class LanguageOSLearningApp:
                         )
                         ui.label(page.subtitle).classes("text-sm text-slate-500")
 
-                    ui.button(
-                        "Refresh Health",
-                        icon="refresh",
-                        on_click=self.run_healthcheck,
-                    ).props("outline").classes("bg-white")
+                    self._render_page_header_actions(page.key)
 
-                if page.key == "dashboard":
-                    self._render_dashboard_page()
-                elif page.key == "workspace":
-                    self._render_workspace_page()
+                if page.key == "today":
+                    self._render_today_page()
                 elif page.key == "review":
                     self._render_review_page()
-                elif page.key == "maintenance":
-                    self._render_maintenance_page()
-                elif page.key == "settings":
-                    self._render_settings_page()
+                elif page.key == "workspace":
+                    self._render_workspace_page()
+                elif page.key == "library":
+                    self._render_library_page()
+                elif page.key == "system":
+                    self._render_system_page()
 
-    def _render_dashboard_page(self) -> None:
+    def _render_page_header_actions(self, page_key: str) -> None:
+        with ui.row().classes("gap-2"):
+            if page_key == "today":
+                ui.button(
+                    "Start Review",
+                    icon="school",
+                    on_click=lambda: self.show_page("review"),
+                ).props("unelevated")
+                ui.button(
+                    "Search",
+                    icon="search",
+                    on_click=lambda: self.show_page("workspace"),
+                ).props("outline").classes("bg-white")
+            elif page_key == "system":
+                ui.button(
+                    "Refresh Health",
+                    icon="refresh",
+                    on_click=self.run_healthcheck,
+                ).props("outline").classes("bg-white")
+
+    def _render_today_page(self) -> None:
         self._render_summary_cards()
+
+        with ui.grid(columns=3).classes("w-full gap-4"):
+            with ui.card().classes("los-card w-full p-5"):
+                ui.label("Continue Learning").classes("text-lg font-semibold")
+                ui.label(
+                    "Resume your current review deck and keep today’s session moving."
+                ).classes("text-sm text-slate-500 mt-2")
+                ui.label(f"{len(self.cards)} cards loaded").classes(
+                    "text-2xl font-bold text-purple-700 mt-4"
+                )
+                ui.button(
+                    "Start Review",
+                    icon="school",
+                    on_click=lambda: self.show_page("review"),
+                ).props("unelevated").classes("mt-4")
+
+            with ui.card().classes("los-card w-full p-5"):
+                ui.label("Quick Search").classes("text-lg font-semibold")
+                ui.label(
+                    "Look up vocabulary, sentences, grammar, and their relations."
+                ).classes("text-sm text-slate-500 mt-2")
+                ui.button(
+                    "Open Workspace",
+                    icon="travel_explore",
+                    on_click=lambda: self.show_page("workspace"),
+                ).props("outline").classes("mt-4 bg-white")
+
+            with ui.card().classes("los-card w-full p-5"):
+                ui.label("Language Focus").classes("text-lg font-semibold")
+                ui.label("English and German are both first-class languages.").classes(
+                    "text-sm text-slate-500 mt-2"
+                )
+
+                with ui.row().classes("gap-2 mt-4"):
+                    ui.label("German").classes(
+                        "text-xs font-bold bg-purple-100 text-purple-700 px-2 py-1 rounded"
+                    )
+                    ui.label("English").classes(
+                        "text-xs font-bold bg-teal-100 text-teal-700 px-2 py-1 rounded"
+                    )
 
         with ui.grid(columns=2).classes("w-full gap-4"):
             with ui.card().classes("los-card w-full p-5"):
-                ui.label("System Status").classes("text-lg font-semibold")
+                ui.label("Recent / Weak Items").classes("text-lg font-semibold")
+                ui.label(
+                    "This learner panel will later show weak items, recent notes, and suggested review targets."
+                ).classes("text-sm text-slate-500 mt-2")
+                ui.label(
+                    "No automatic learning decisions will be applied here."
+                ).classes("text-xs text-slate-400 mt-4")
+
+            with ui.card().classes("los-card w-full p-5"):
+                ui.label("System Health").classes("text-lg font-semibold")
                 self.dashboard_health_label = ui.label(
                     self._dashboard_health_text()
                 ).classes("text-sm text-slate-600 mt-2")
 
                 with ui.row().classes("gap-2 mt-4"):
                     ui.button(
-                        "Open Maintenance",
-                        icon="construction",
-                        on_click=lambda: self.show_page("maintenance"),
-                    ).props("unelevated")
+                        "Open System",
+                        icon="settings",
+                        on_click=lambda: self.show_page("system"),
+                    ).props("outline").classes("bg-white")
                     ui.button(
                         "Run Healthcheck",
                         icon="health_and_safety",
                         on_click=self.run_healthcheck,
-                    ).props("outline")
-
-            with ui.card().classes("los-card w-full p-5"):
-                ui.label("Quick Actions").classes("text-lg font-semibold")
-                ui.label("Jump to a focused workspace.").classes(
-                    "text-sm text-slate-500 mt-2"
-                )
-
-                with ui.row().classes("gap-2 mt-4"):
-                    ui.button(
-                        "Workspace",
-                        icon="travel_explore",
-                        on_click=lambda: self.show_page("workspace"),
-                    ).props("outline")
-                    ui.button(
-                        "Review",
-                        icon="school",
-                        on_click=lambda: self.show_page("review"),
-                    ).props("outline")
-                    ui.button(
-                        "Settings",
-                        icon="settings",
-                        on_click=lambda: self.show_page("settings"),
-                    ).props("outline")
+                    ).props("flat")
 
     def _render_summary_cards(self) -> None:
         with ui.grid(columns=3).classes("w-full gap-4"):
             with ui.card().classes("los-card w-full p-5"):
-                ui.label("Deck").classes("text-sm text-slate-500")
+                ui.label("Review Deck").classes("text-sm text-slate-500")
                 self.deck_count_label = ui.label(f"{len(self.cards)} cards").classes(
                     "text-3xl font-bold text-purple-700"
                 )
@@ -479,49 +547,6 @@ class LanguageOSLearningApp:
                 self.stats_label = ui.label(self._session_stats_text()).classes(
                     "text-lg font-semibold text-slate-700"
                 )
-
-    def _render_workspace_page(self) -> None:
-        with ui.card().classes("los-card w-full p-5"):
-            with ui.row().classes("w-full gap-3 items-end"):
-                self.workspace_language_select = ui.select(
-                    label="Language",
-                    options=["all", "german", "english"],
-                    value=self._select_value(
-                        self.workspace_language_select,
-                        default="german",
-                    ),
-                ).classes("w-44")
-
-                self.workspace_type_select = ui.select(
-                    label="Type",
-                    options=["all", "vocabulary", "sentence", "grammar"],
-                    value=self._select_value(self.workspace_type_select, default="all"),
-                ).classes("w-44")
-
-                self.workspace_query_input = ui.input(
-                    label="Search item",
-                    placeholder="trotzdem / Contrast connectors / Ich lerne",
-                    value=self._workspace_query_value(),
-                    on_change=lambda _: self.search_workspace(),
-                ).classes("grow")
-
-                ui.button(
-                    "Search",
-                    icon="search",
-                    on_click=self.search_workspace,
-                ).props("unelevated")
-
-                ui.button(
-                    "Clear",
-                    icon="clear",
-                    on_click=self.clear_workspace,
-                ).props("outline")
-
-        with ui.grid(columns=2).classes("w-full gap-4"):
-            self.workspace_results_container = ui.column().classes("w-full gap-2")
-            self.workspace_inspector_container = ui.column().classes("w-full gap-2")
-
-        self._render_workspace()
 
     def _render_review_page(self) -> None:
         with ui.card().classes("los-card w-full p-5"):
@@ -571,43 +596,163 @@ class LanguageOSLearningApp:
         self.card_container = ui.column().classes("w-full gap-4")
         self._render_current_card()
 
-    def _render_maintenance_page(self) -> None:
+    def _render_workspace_page(self) -> None:
         with ui.card().classes("los-card w-full p-5"):
-            ui.label("Maintenance Actions").classes("text-lg font-semibold")
-            ui.label(
-                "Actions are explicit and safe. Use dry-run first when unsure."
-            ).classes("text-sm text-slate-500 mt-1")
+            with ui.row().classes("w-full gap-3 items-end"):
+                self.workspace_language_select = ui.select(
+                    label="Language",
+                    options=["all", "german", "english"],
+                    value=self._select_value(
+                        self.workspace_language_select,
+                        default="all",
+                    ),
+                ).classes("w-44")
 
-            with ui.row().classes("w-full gap-2 mt-4"):
+                self.workspace_type_select = ui.select(
+                    label="Type",
+                    options=["all", "vocabulary", "sentence", "grammar"],
+                    value=self._select_value(self.workspace_type_select, default="all"),
+                ).classes("w-44")
+
+                self.workspace_query_input = ui.input(
+                    label="Search item",
+                    placeholder="trotzdem / Contrast connectors / Ich lerne",
+                    value=self._workspace_query_value(),
+                    on_change=lambda _: self.search_workspace(),
+                ).classes("grow")
+
                 ui.button(
-                    "Healthcheck",
-                    icon="health_and_safety",
-                    on_click=self.run_healthcheck,
+                    "Search",
+                    icon="search",
+                    on_click=self.search_workspace,
                 ).props("unelevated")
 
                 ui.button(
-                    "Dry-run Build DB",
-                    icon="visibility",
-                    on_click=lambda: self.run_build_database(dry_run=True),
+                    "Clear",
+                    icon="clear",
+                    on_click=self.clear_workspace,
                 ).props("outline")
 
-                ui.button(
-                    "Build DB",
-                    icon="storage",
-                    on_click=lambda: self.run_build_database(dry_run=False),
-                ).props("outline color=warning")
+        with ui.grid(columns=2).classes("w-full gap-4"):
+            self.workspace_results_container = ui.column().classes("w-full gap-2")
+            self.workspace_inspector_container = ui.column().classes("w-full gap-2")
 
-                ui.button(
-                    "Dry-run Relations",
-                    icon="visibility",
-                    on_click=lambda: self.run_rebuild_relation_index(dry_run=True),
-                ).props("outline")
+        self._render_workspace()
 
-                ui.button(
-                    "Rebuild Relations",
+    def _render_library_page(self) -> None:
+        with ui.card().classes("los-card w-full p-6"):
+            with ui.row().classes("items-center gap-3"):
+                ui.icon("inventory_2").classes("text-4xl text-purple-500")
+                with ui.column().classes("gap-0"):
+                    ui.label("Language Library").classes(
+                        "text-xl font-bold text-slate-900"
+                    )
+                    ui.label("Planned learner browsing surface").classes(
+                        "text-sm text-slate-500"
+                    )
+
+            ui.separator().classes("my-4")
+
+            ui.label(
+                "This page will later let you browse your Obsidian learning notes by language, type, status, and relation."
+            ).classes("text-sm text-slate-700")
+
+            with ui.grid(columns=4).classes("w-full gap-3 mt-4"):
+                self._render_library_placeholder_card(
+                    title="Languages",
+                    body="German and English collections.",
+                    icon="translate",
+                )
+                self._render_library_placeholder_card(
+                    title="Types",
+                    body="Vocabulary, sentences, grammar, transcripts, and audio.",
+                    icon="category",
+                )
+                self._render_library_placeholder_card(
+                    title="Status",
+                    body="Learning, generated, raw transcript, and future review states.",
+                    icon="fact_check",
+                )
+                self._render_library_placeholder_card(
+                    title="Relations",
+                    body="Connected vocabulary, grammar, and similar items.",
                     icon="hub",
-                    on_click=lambda: self.run_rebuild_relation_index(dry_run=False),
-                ).props("outline color=warning")
+                )
+
+            ui.label(
+                "No new database query is added in this milestone. This keeps the UI refactor safe and non-destructive."
+            ).classes("text-xs text-slate-400 mt-4")
+
+    def _render_library_placeholder_card(
+        self,
+        *,
+        title: str,
+        body: str,
+        icon: str,
+    ) -> None:
+        with ui.card().classes("los-soft-card w-full p-4"):
+            ui.icon(icon).classes("text-2xl text-purple-500")
+            ui.label(title).classes("text-base font-semibold text-slate-800 mt-2")
+            ui.label(body).classes("text-sm text-slate-500")
+
+    def _render_system_page(self) -> None:
+        with ui.grid(columns=2).classes("w-full gap-4"):
+            with ui.card().classes("los-card w-full p-5"):
+                ui.label("Maintenance Actions").classes("text-lg font-semibold")
+                ui.label(
+                    "Actions are explicit and safe. Use dry-run first when unsure."
+                ).classes("text-sm text-slate-500 mt-1")
+
+                with ui.row().classes("w-full gap-2 mt-4"):
+                    ui.button(
+                        "Healthcheck",
+                        icon="health_and_safety",
+                        on_click=self.run_healthcheck,
+                    ).props("unelevated")
+
+                    ui.button(
+                        "Dry-run Build DB",
+                        icon="visibility",
+                        on_click=lambda: self.run_build_database(dry_run=True),
+                    ).props("outline")
+
+                    ui.button(
+                        "Build DB",
+                        icon="storage",
+                        on_click=lambda: self.run_build_database(dry_run=False),
+                    ).props("outline color=warning")
+
+                    ui.button(
+                        "Dry-run Relations",
+                        icon="visibility",
+                        on_click=lambda: self.run_rebuild_relation_index(dry_run=True),
+                    ).props("outline")
+
+                    ui.button(
+                        "Rebuild Relations",
+                        icon="hub",
+                        on_click=lambda: self.run_rebuild_relation_index(
+                            dry_run=False
+                        ),
+                    ).props("outline color=warning")
+
+            with ui.card().classes("los-card w-full p-5"):
+                ui.label("Local Configuration").classes("text-lg font-semibold")
+                ui.label(
+                    "Read-only runtime paths for your local-first LanguageOS setup."
+                ).classes("text-sm text-slate-500 mt-1")
+
+                ui.separator().classes("my-4")
+
+                self._render_setting_row("Project root", str(self.config.project_root))
+                self._render_setting_row("Vault path", str(self.config.vault_path))
+                self._render_setting_row("Database path", str(self.config.db_path))
+                self._render_setting_row(
+                    "Local apps config",
+                    str(self.config.local_apps_config_path),
+                )
+                self._render_setting_row("Host", self.config.host)
+                self._render_setting_row("Port", str(self.config.port))
 
         with ui.grid(columns=2).classes("w-full gap-4"):
             self.health_container = ui.column().classes("w-full gap-2")
@@ -616,25 +761,6 @@ class LanguageOSLearningApp:
         if self.last_health_report is not None:
             self._render_health_report(self.last_health_report)
 
-    def _render_settings_page(self) -> None:
-        with ui.card().classes("los-card w-full p-5"):
-            ui.label("Local Configuration").classes("text-lg font-semibold")
-            ui.label(
-                "These paths define your local-first LanguageOS runtime."
-            ).classes("text-sm text-slate-500 mt-1")
-
-            ui.separator().classes("my-4")
-
-            self._render_setting_row("Project root", str(self.config.project_root))
-            self._render_setting_row("Vault path", str(self.config.vault_path))
-            self._render_setting_row("Database path", str(self.config.db_path))
-            self._render_setting_row(
-                "Local apps config",
-                str(self.config.local_apps_config_path),
-            )
-            self._render_setting_row("Host", self.config.host)
-            self._render_setting_row("Port", str(self.config.port))
-
     def _render_setting_row(self, label: str, value: str) -> None:
         with ui.row().classes("w-full items-start gap-4 py-2 border-b border-slate-100"):
             ui.label(label).classes("w-40 text-sm font-semibold text-slate-700")
@@ -642,7 +768,7 @@ class LanguageOSLearningApp:
 
     def search_workspace(self, *, show_notification: bool = True) -> None:
         query = self._workspace_query_value()
-        language = self._select_value(self.workspace_language_select, default="german")
+        language = self._select_value(self.workspace_language_select, default="all")
         item_type = self._select_value(self.workspace_type_select, default="all")
 
         language_filter = None if language == "all" else language
@@ -957,11 +1083,7 @@ class LanguageOSLearningApp:
         )
 
         with card:
-            with ui.row().classes("w-full justify-between items-center"):
-                ui.label(item.title).classes("text-sm font-semibold text-slate-800")
-                ui.label(f"{item.score:.2f}").classes(
-                    "text-xs font-mono text-slate-400"
-                )
+            ui.label(item.title).classes("text-sm font-semibold text-slate-800")
 
             with ui.row().classes("gap-2"):
                 ui.label(item.item_type.upper()).classes(
@@ -970,12 +1092,10 @@ class LanguageOSLearningApp:
                 ui.label(item.language).classes(
                     "text-[10px] font-semibold bg-slate-100 text-slate-700 px-2 py-1 rounded"
                 )
-                ui.label(item.match_kind).classes(
-                    "text-[10px] font-semibold bg-teal-100 text-teal-700 px-2 py-1 rounded"
-                )
 
-            ui.label(item.item_key).classes(
-                "text-xs font-mono text-slate-400 break-all"
+            ui.label(item.item_key).classes("los-muted-metadata break-all")
+            ui.label(f"{item.match_kind} · score {item.score:.2f}").classes(
+                "los-muted-metadata"
             )
 
     def _render_workspace_inspector(self) -> None:
@@ -1002,10 +1122,6 @@ class LanguageOSLearningApp:
 
             ui.label(item.title).classes(
                 "text-3xl font-bold text-slate-900 leading-tight mt-3"
-            )
-
-            ui.label(item.item_key).classes(
-                "text-xs font-mono text-slate-400 break-all mt-1"
             )
 
             if item.text_preview:
@@ -1042,6 +1158,13 @@ class LanguageOSLearningApp:
                         icon="open_in_new",
                         on_click=self.open_workspace_note,
                     ).props("flat size=sm")
+
+            ui.separator()
+            ui.label("Technical Details").classes("text-sm font-semibold text-slate-700")
+            ui.label(item.item_key).classes("los-muted-metadata break-all")
+            ui.label(f"Match: {item.match_kind} · Score: {item.score:.2f}").classes(
+                "los-muted-metadata"
+            )
 
             ui.separator()
             self._render_workspace_relation_section(
@@ -1400,7 +1523,7 @@ class LanguageOSLearningApp:
         return self.cards[self.current_index]
 
     def _workspace_language_filter(self) -> str | None:
-        language = self._select_value(self.workspace_language_select, default="german")
+        language = self._select_value(self.workspace_language_select, default="all")
         return None if language == "all" else language
 
     def _workspace_type_filter(self) -> str | None:
@@ -1448,7 +1571,7 @@ class LanguageOSLearningApp:
         if self.last_health_report.ok:
             return "System is healthy."
 
-        return "System needs attention. Open Maintenance for details."
+        return "System needs attention. Open System for details."
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
