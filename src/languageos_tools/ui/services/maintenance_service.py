@@ -60,6 +60,10 @@ class MaintenanceService:
     - It executes only known project scripts.
     - It supports dry-run command preview.
     - It does not delete, merge, or approve learning data.
+
+    Current LanguageOS DB builds use `items` as the canonical item table.
+    Older test/experimental schemas may use `language_items`, so table detection
+    remains flexible and backward-compatible.
     """
 
     def __init__(
@@ -124,21 +128,26 @@ class MaintenanceService:
             with sqlite3.connect(self.db_path) as conn:
                 tables = self._list_tables(conn)
 
-                has_language_items = "language_items" in tables
+                item_table = self._detect_item_table(tables)
+                has_item_table = item_table is not None
+
                 checks.append(
                     HealthCheckResult(
                         name="language_items_table",
-                        ok=has_language_items,
+                        ok=has_item_table,
                         message=(
-                            "language_items table exists."
-                            if has_language_items
-                            else "language_items table is missing."
+                            f"Language item table exists: {item_table}"
+                            if item_table
+                            else (
+                                "No language item table found. "
+                                "Expected one of: items, language_items."
+                            )
                         ),
                     )
                 )
 
-                if has_language_items:
-                    language_item_count = self._count_rows(conn, "language_items")
+                if item_table:
+                    language_item_count = self._count_rows(conn, item_table)
                     checks.append(
                         HealthCheckResult(
                             name="language_items_count",
@@ -146,6 +155,22 @@ class MaintenanceService:
                             message=f"Indexed language items: {language_item_count}",
                         )
                     )
+
+                fts_table = self._detect_fts_table(tables)
+                checks.append(
+                    HealthCheckResult(
+                        name="search_index",
+                        ok=True,
+                        message=(
+                            f"Search FTS table exists: {fts_table}"
+                            if fts_table
+                            else (
+                                "No search FTS table found. "
+                                "This is allowed for minimal or legacy schemas."
+                            )
+                        ),
+                    )
+                )
 
                 relation_table = self._detect_relation_table(tables)
                 has_relation_table = relation_table is not None
@@ -274,8 +299,42 @@ class MaintenanceService:
         row = conn.execute(f'SELECT COUNT(*) FROM "{quoted_table_name}"').fetchone()
         return int(row[0]) if row else 0
 
+    def _detect_item_table(self, tables: set[str]) -> str | None:
+        preferred_names = (
+            "items",
+            "language_items",
+        )
+
+        for name in preferred_names:
+            if name in tables:
+                return name
+
+        for name in sorted(tables):
+            if name.endswith("_items") or ("language" in name and "item" in name):
+                return name
+
+        return None
+
+    def _detect_fts_table(self, tables: set[str]) -> str | None:
+        preferred_names = (
+            "search_documents_fts",
+            "language_items_fts",
+            "items_fts",
+        )
+
+        for name in preferred_names:
+            if name in tables:
+                return name
+
+        for name in sorted(tables):
+            if name.endswith("_fts"):
+                return name
+
+        return None
+
     def _detect_relation_table(self, tables: set[str]) -> str | None:
         preferred_names = (
+            "item_relations",
             "relations",
             "relation_edges",
             "language_relations",
