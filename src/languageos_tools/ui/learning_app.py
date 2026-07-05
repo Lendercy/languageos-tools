@@ -477,7 +477,7 @@ class LanguageOSLearningApp:
             with ui.card().classes("los-card w-full p-5"):
                 ui.label("Continue Learning").classes("text-lg font-semibold")
                 ui.label(
-                    "Resume your current review deck and keep today’s session moving."
+                    "Resume your current review deck and keep today's session moving."
                 ).classes("text-sm text-slate-500 mt-2")
                 ui.label(f"{len(self.cards)} cards loaded").classes(
                     "text-2xl font-bold text-purple-700 mt-4"
