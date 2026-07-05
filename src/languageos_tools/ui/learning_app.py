@@ -295,6 +295,19 @@ class LanguageOSLearningApp:
                     font-size: 11px;
                     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
                 }
+
+                .los-rating-panel {
+                    margin-top: 16px;
+                    margin-bottom: 16px;
+                    padding: 14px 16px;
+                    background: #f8fafc;
+                    border: 1px solid #e5e7eb;
+                    border-radius: 14px;
+                }
+
+                .los-rating-actions {
+                    flex-wrap: wrap;
+                }
             </style>
             """
         )
@@ -1016,9 +1029,18 @@ class LanguageOSLearningApp:
 
     def open_anki_app(self) -> None:
         result = self.external_apps.open_anki_app()
+        message = result.message
+
+        if not result.success:
+            message = (
+                f"{result.message} Check configs/local_apps.json and make sure "
+                "the Anki executable path is correct."
+            )
+
         ui.notify(
-            result.message,
+            message,
             type="positive" if result.success else "negative",
+            timeout=8000,
         )
 
     def check_anki_connect(self) -> None:
@@ -1323,9 +1345,7 @@ class LanguageOSLearningApp:
             if self.answer_revealed:
                 with ui.grid(columns=2).classes("w-full gap-4"):
                     self._render_front_card(card, compact=True)
-                    self._render_answer_panel(card)
-
-                self._render_rating_buttons()
+                    self._render_answer_panel(card, show_rating=True)
             else:
                 self._render_front_card(card, compact=False)
 
@@ -1414,12 +1434,20 @@ class LanguageOSLearningApp:
                     on_click=self.open_current_note,
                 ).props("flat size=sm")
 
-    def _render_answer_panel(self, card: StudyCard) -> None:
+    def _render_answer_panel(
+        self,
+        card: StudyCard,
+        *,
+        show_rating: bool = False,
+    ) -> None:
         with ui.card().classes("los-card w-full p-6"):
             ui.label("Meaning / Explanation").classes(
                 "text-lg font-semibold text-slate-800"
             )
             ui.markdown(card.back).classes("text-base text-slate-800 leading-relaxed")
+
+            if show_rating:
+                self._render_rating_buttons()
 
             if card.examples:
                 ui.separator()
@@ -1461,13 +1489,13 @@ class LanguageOSLearningApp:
             ui.label(item).classes("text-sm font-medium text-slate-800")
 
     def _render_rating_buttons(self) -> None:
-        with ui.card().classes("los-card w-full"):
-            with ui.row().classes("w-full justify-between items-center"):
+        with ui.element("div").classes("los-rating-panel w-full"):
+            with ui.row().classes("w-full justify-between items-center gap-3"):
                 ui.label("How well did you remember this?").classes(
                     "text-sm font-semibold text-slate-600"
                 )
 
-                with ui.row().classes("gap-2"):
+                with ui.row().classes("los-rating-actions gap-2"):
                     ui.button(
                         "Again",
                         icon="replay",
