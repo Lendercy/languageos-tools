@@ -16,6 +16,12 @@ from languageos_tools.study.study_service import (
     StudyFilter,
     StudyService,
 )
+from languageos_tools.ui.services.library_service import (
+    LibraryFilter,
+    LibraryItemView,
+    LibraryLookupView,
+    LibraryService,
+)
 from languageos_tools.ui.services.maintenance_service import (
     MaintenanceCommandResult,
     MaintenanceService,
@@ -106,6 +112,9 @@ class LanguageOSLearningApp:
             project_root=config.project_root,
             db_path=config.db_path,
         )
+        self.library_service = LibraryService(
+            db_path=config.db_path,
+        )
         self.external_apps = ExternalAppService(
             ExternalAppConfig.load(
                 vault_path=config.vault_path,
@@ -148,6 +157,21 @@ class LanguageOSLearningApp:
         self.maintenance_output_container: ui.column | None = None
         self.last_health_report: WorkspaceHealthReport | None = None
 
+        self.library_query_input: ui.input | None = None
+        self.library_language_select: ui.select | None = None
+        self.library_type_select: ui.select | None = None
+        self.library_status_select: ui.select | None = None
+        self.library_anki_status_select: ui.select | None = None
+        self.library_level_select: ui.select | None = None
+        self.library_source_type_select: ui.select | None = None
+        self.library_review_status_select: ui.select | None = None
+        self.library_review_priority_select: ui.select | None = None
+        self.library_topic_select: ui.select | None = None
+        self.library_skill_select: ui.select | None = None
+        self.library_limit_select: ui.select | None = None
+        self.library_results_container: ui.column | None = None
+        self.library_last_view: LibraryLookupView | None = None
+
     def build(self) -> None:
         ui.colors(
             primary="#7c3aed",
@@ -165,6 +189,7 @@ class LanguageOSLearningApp:
         self.reload_deck(show_notification=False)
         self.run_healthcheck(show_notification=False)
         self.search_workspace(show_notification=False)
+        self.load_library(show_notification=False)
 
     def _add_layout_css(self) -> None:
         ui.add_head_html(
@@ -307,6 +332,31 @@ class LanguageOSLearningApp:
 
                 .los-rating-actions {
                     flex-wrap: wrap;
+                }
+
+                .los-library-filter-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                    gap: 12px;
+                    width: 100%;
+                }
+
+                .los-library-item {
+                    background: white;
+                    border: 1px solid #e5e7eb;
+                    border-radius: 14px;
+                    padding: 14px;
+                }
+
+                .los-library-item:hover {
+                    border-color: #c4b5fd;
+                    background: #faf5ff;
+                }
+
+                .los-badge-row {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 6px;
                 }
             </style>
             """
@@ -653,60 +703,372 @@ class LanguageOSLearningApp:
         self._render_workspace()
 
     def _render_library_page(self) -> None:
-        with ui.card().classes("los-card w-full p-6"):
-            with ui.row().classes("items-center gap-3"):
-                ui.icon("inventory_2").classes("text-4xl text-purple-500")
-                with ui.column().classes("gap-0"):
-                    ui.label("Language Library").classes(
-                        "text-xl font-bold text-slate-900"
-                    )
-                    ui.label("Planned learner browsing surface").classes(
-                        "text-sm text-slate-500"
-                    )
+        facets = self._library_facets()
+
+        with ui.card().classes("los-card w-full p-5"):
+            ui.label("Library Filters").classes("text-lg font-semibold")
+            ui.label(
+                "Browse indexed LanguageOS notes by metadata. This reads the local SQLite index only."
+            ).classes("text-sm text-slate-500 mt-1")
+
+            with ui.row().classes("w-full gap-3 items-end mt-4"):
+                self.library_query_input = ui.input(
+                    label="Search",
+                    placeholder="trotzdem / contrast / source path",
+                    value=str(self.library_query_input.value or "")
+                    if self.library_query_input
+                    else "",
+                ).classes("grow")
+
+                self.library_language_select = ui.select(
+                    label="Language",
+                    options=self._library_options(facets.languages),
+                    value=self._select_value(
+                        self.library_language_select,
+                        default="all",
+                    ),
+                ).classes("w-44")
+
+                self.library_type_select = ui.select(
+                    label="Type",
+                    options=self._library_options(facets.item_types),
+                    value=self._select_value(self.library_type_select, default="all"),
+                ).classes("w-44")
+
+                self.library_status_select = ui.select(
+                    label="Status",
+                    options=self._library_options(facets.statuses),
+                    value=self._select_value(self.library_status_select, default="all"),
+                ).classes("w-44")
+
+                ui.button(
+                    "Load Library",
+                    icon="inventory_2",
+                    on_click=self.load_library,
+                ).props("unelevated")
+
+                ui.button(
+                    "Reset",
+                    icon="restart_alt",
+                    on_click=self.reset_library_filters,
+                ).props("outline")
 
             ui.separator().classes("my-4")
+            ui.label("Advanced Filters").classes("text-sm font-semibold text-slate-700")
 
-            ui.label(
-                "This page will later let you browse your Obsidian learning notes by language, type, status, and relation."
-            ).classes("text-sm text-slate-700")
+            with ui.element("div").classes("los-library-filter-grid mt-3"):
+                self.library_anki_status_select = ui.select(
+                    label="Anki Status",
+                    options=self._library_options(facets.anki_statuses),
+                    value=self._select_value(
+                        self.library_anki_status_select,
+                        default="all",
+                    ),
+                )
+                self.library_level_select = ui.select(
+                    label="Level",
+                    options=self._library_options(facets.levels),
+                    value=self._select_value(self.library_level_select, default="all"),
+                )
+                self.library_source_type_select = ui.select(
+                    label="Source Type",
+                    options=self._library_options(facets.source_types),
+                    value=self._select_value(
+                        self.library_source_type_select,
+                        default="all",
+                    ),
+                )
+                self.library_review_status_select = ui.select(
+                    label="Review Status",
+                    options=self._library_options(facets.review_statuses),
+                    value=self._select_value(
+                        self.library_review_status_select,
+                        default="all",
+                    ),
+                )
+                self.library_review_priority_select = ui.select(
+                    label="Review Priority",
+                    options=self._library_options(facets.review_priorities),
+                    value=self._select_value(
+                        self.library_review_priority_select,
+                        default="all",
+                    ),
+                )
+                self.library_topic_select = ui.select(
+                    label="Topic",
+                    options=self._library_options(facets.topics),
+                    value=self._select_value(self.library_topic_select, default="all"),
+                )
+                self.library_skill_select = ui.select(
+                    label="Skill",
+                    options=self._library_options(facets.skills),
+                    value=self._select_value(self.library_skill_select, default="all"),
+                )
+                self.library_limit_select = ui.select(
+                    label="Limit",
+                    options=["25", "50", "100", "200", "500"],
+                    value=str(self.library_limit_select.value or "100")
+                    if self.library_limit_select
+                    else "100",
+                )
 
-            with ui.grid(columns=4).classes("w-full gap-3 mt-4"):
-                self._render_library_placeholder_card(
-                    title="Languages",
-                    body="German and English collections.",
-                    icon="translate",
-                )
-                self._render_library_placeholder_card(
-                    title="Types",
-                    body="Vocabulary, sentences, grammar, transcripts, and audio.",
-                    icon="category",
-                )
-                self._render_library_placeholder_card(
-                    title="Status",
-                    body="Learning, generated, raw transcript, and future review states.",
-                    icon="fact_check",
-                )
-                self._render_library_placeholder_card(
-                    title="Relations",
-                    body="Connected vocabulary, grammar, and similar items.",
-                    icon="hub",
-                )
+        self.library_results_container = ui.column().classes("w-full gap-3")
+        self._render_library_results()
 
-            ui.label(
-                "No new database query is added in this milestone. This keeps the UI refactor safe and non-destructive."
-            ).classes("text-xs text-slate-400 mt-4")
+    def load_library(self, *, show_notification: bool = True) -> None:
+        try:
+            self.library_last_view = self.library_service.lookup(
+                self._build_library_filter()
+            )
+        except Exception as exc:
+            ui.notify(f"Library lookup failed: {exc}", type="negative")
+            self.library_last_view = None
 
-    def _render_library_placeholder_card(
-        self,
-        *,
-        title: str,
-        body: str,
-        icon: str,
-    ) -> None:
-        with ui.card().classes("los-soft-card w-full p-4"):
-            ui.icon(icon).classes("text-2xl text-purple-500")
-            ui.label(title).classes("text-base font-semibold text-slate-800 mt-2")
-            ui.label(body).classes("text-sm text-slate-500")
+        self._render_library_results()
+
+        if show_notification:
+            item_count = (
+                len(self.library_last_view.items)
+                if self.library_last_view is not None
+                else 0
+            )
+            ui.notify(f"Loaded {item_count} library item(s).", type="positive")
+
+    def reset_library_filters(self) -> None:
+        for select in (
+            self.library_language_select,
+            self.library_type_select,
+            self.library_status_select,
+            self.library_anki_status_select,
+            self.library_level_select,
+            self.library_source_type_select,
+            self.library_review_status_select,
+            self.library_review_priority_select,
+            self.library_topic_select,
+            self.library_skill_select,
+        ):
+            if select is not None:
+                select.value = "all"
+
+        if self.library_query_input is not None:
+            self.library_query_input.value = ""
+
+        if self.library_limit_select is not None:
+            self.library_limit_select.value = "100"
+
+        self.load_library(show_notification=True)
+
+    def copy_library_note_path(self, path: str) -> None:
+        if not path:
+            ui.notify("No library note path available.", type="warning")
+            return
+
+        ui.clipboard.write(path)
+        ui.notify("Copied library note path.", type="positive")
+
+    def copy_library_obsidian_uri(self, path: str) -> None:
+        if not path:
+            ui.notify("No library note path available.", type="warning")
+            return
+
+        try:
+            uri = self.external_apps.build_obsidian_uri(path)
+        except Exception as exc:
+            ui.notify(f"Could not build Obsidian URI: {exc}", type="negative")
+            return
+
+        ui.clipboard.write(uri)
+        ui.notify("Copied library Obsidian URI.", type="positive")
+
+    def open_library_note(self, path: str) -> None:
+        if not path:
+            ui.notify("No library note path available.", type="warning")
+            return
+
+        result = self.external_apps.open_obsidian_note(path)
+        ui.notify(
+            result.message,
+            type="positive" if result.success else "negative",
+        )
+
+    def _render_library_results(self) -> None:
+        if self.library_results_container is None:
+            return
+
+        self.library_results_container.clear()
+
+        with self.library_results_container:
+            view = self.library_last_view
+
+            with ui.card().classes("los-card w-full p-4"):
+                with ui.row().classes("w-full justify-between items-center"):
+                    ui.label("Library Results").classes(
+                        "text-base font-semibold text-slate-800"
+                    )
+                    if view is not None:
+                        ui.label(f"{len(view.items)} item(s)").classes(
+                            "text-xs font-mono text-slate-400"
+                        )
+
+                if view is None:
+                    ui.label("Load the library to browse indexed notes.").classes(
+                        "text-sm text-slate-500 mt-2"
+                    )
+                    return
+
+                if not view.db_exists:
+                    ui.label(f"Database not found: {view.db_path}").classes(
+                        "text-sm text-red-600 mt-2"
+                    )
+                    return
+
+                if not view.items:
+                    ui.label("No items match the current filters.").classes(
+                        "text-sm text-slate-500 mt-2"
+                    )
+                    return
+
+                for item in view.items:
+                    self._render_library_item(item)
+
+    def _render_library_item(self, item: LibraryItemView) -> None:
+        with ui.element("div").classes("los-library-item w-full"):
+            with ui.row().classes("w-full justify-between items-start gap-3"):
+                with ui.column().classes("gap-1 grow"):
+                    ui.label(item.text or item.normalized).classes(
+                        "text-base font-semibold text-slate-900"
+                    )
+                    ui.label(item.item_key).classes("los-muted-metadata break-all")
+
+                with ui.row().classes("gap-1"):
+                    if item.obsidian_path:
+                        ui.button(
+                            "Copy Path",
+                            icon="content_copy",
+                            on_click=lambda path=item.obsidian_path: self.copy_library_note_path(
+                                path
+                            ),
+                        ).props("flat size=sm")
+                        ui.button(
+                            "Copy URI",
+                            icon="link",
+                            on_click=lambda path=item.obsidian_path: self.copy_library_obsidian_uri(
+                                path
+                            ),
+                        ).props("flat size=sm")
+                        ui.button(
+                            "Open",
+                            icon="open_in_new",
+                            on_click=lambda path=item.obsidian_path: self.open_library_note(
+                                path
+                            ),
+                        ).props("flat size=sm")
+
+            with ui.element("div").classes("los-badge-row mt-2"):
+                self._render_library_badge(item.language, "bg-slate-100 text-slate-700")
+                self._render_library_badge(
+                    item.item_type.upper(),
+                    "bg-purple-100 text-purple-700",
+                )
+                self._render_library_badge(item.status, "bg-green-100 text-green-700")
+                self._render_library_badge(
+                    f"Anki: {item.anki_status or 'unknown'}",
+                    "bg-amber-100 text-amber-700",
+                )
+                if item.level:
+                    self._render_library_badge(
+                        f"Level: {item.level}",
+                        "bg-blue-100 text-blue-700",
+                    )
+                if item.source_type:
+                    self._render_library_badge(
+                        f"Source: {item.source_type}",
+                        "bg-teal-100 text-teal-700",
+                    )
+                if item.review_status:
+                    self._render_library_badge(
+                        f"Review: {item.review_status}",
+                        "bg-indigo-100 text-indigo-700",
+                    )
+                if item.review_priority:
+                    self._render_library_badge(
+                        f"Priority: {item.review_priority}",
+                        "bg-rose-100 text-rose-700",
+                    )
+
+            if item.topics or item.skills:
+                with ui.element("div").classes("los-badge-row mt-2"):
+                    for topic in item.topics:
+                        self._render_library_badge(
+                            f"Topic: {topic}",
+                            "bg-slate-100 text-slate-600",
+                        )
+                    for skill in item.skills:
+                        self._render_library_badge(
+                            f"Skill: {skill}",
+                            "bg-slate-100 text-slate-600",
+                        )
+
+            if item.obsidian_path:
+                ui.label(item.obsidian_path).classes("los-muted-metadata break-all mt-2")
+
+    def _render_library_badge(self, text: str, classes: str) -> None:
+        clean_text = text.strip()
+        if not clean_text:
+            return
+
+        ui.label(clean_text).classes(
+            f"text-[10px] font-bold px-2 py-1 rounded {classes}"
+        )
+
+    def _build_library_filter(self) -> LibraryFilter:
+        return LibraryFilter(
+            query=str(self.library_query_input.value or "")
+            if self.library_query_input
+            else "",
+            language=self._select_value(self.library_language_select, default="all"),
+            item_type=self._select_value(self.library_type_select, default="all"),
+            status=self._select_value(self.library_status_select, default="all"),
+            anki_status=self._select_value(
+                self.library_anki_status_select,
+                default="all",
+            ),
+            level=self._select_value(self.library_level_select, default="all"),
+            source_type=self._select_value(
+                self.library_source_type_select,
+                default="all",
+            ),
+            review_status=self._select_value(
+                self.library_review_status_select,
+                default="all",
+            ),
+            review_priority=self._select_value(
+                self.library_review_priority_select,
+                default="all",
+            ),
+            topic=self._select_value(self.library_topic_select, default="all"),
+            skill=self._select_value(self.library_skill_select, default="all"),
+            limit=self._library_limit_value(),
+        )
+
+    def _library_limit_value(self) -> int:
+        if self.library_limit_select is None:
+            return 100
+
+        try:
+            return int(str(self.library_limit_select.value or "100"))
+        except ValueError:
+            return 100
+
+    def _library_facets(self):
+        if self.library_last_view is None:
+            return self.library_service.lookup().facets
+
+        return self.library_last_view.facets
+
+    def _library_options(self, values: tuple[str, ...]) -> list[str]:
+        clean_values = [value for value in values if value.strip()]
+        return ["all", *clean_values]
 
     def _render_system_page(self) -> None:
         with ui.grid(columns=2).classes("w-full gap-4"):
